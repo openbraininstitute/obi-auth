@@ -80,5 +80,6 @@ class AuthServer:
     def wait_for_code(self, timeout: int = settings.LOCAL_SERVER_TIMEOUT) -> str:
         """Wait for code."""
         if self.auth_state.event.wait(timeout):
+            self.auth_state.event.clear()
             return self.auth_state.code
         raise TimeoutError("Timeout waiting for authorization code")
