@@ -44,7 +44,7 @@ def _authorize(server: AuthServer, code_challenge: str, override_env: str | None
     encoded_params = urllib.parse.urlencode(params)
     auth_url = f"{base_auth_url}?{encoded_params}"
 
-    L.warning("Authentication url: %s", auth_url)
+    L.info("Authentication url: %s", auth_url)
     webbrowser.open(auth_url)
 
     return server.wait_for_code()

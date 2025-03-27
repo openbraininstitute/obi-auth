@@ -69,10 +69,10 @@ class AuthServer:
         thread = threading.Thread(target=server.run, daemon=True)
         try:
             thread.start()
-            L.warning("Local server listening on http://%s:%s", HOST, self.port)
+            L.info("Local server listening on http://%s:%s", HOST, self.port)
             yield self
         finally:
-            L.warning("Stopping the local server")
+            L.debug("Stopping the local server")
             server.should_exit = True
             thread.join(timeout=1)
 
