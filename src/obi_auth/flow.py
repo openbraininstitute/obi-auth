@@ -63,8 +63,7 @@ def _exhange_code_for_token(
             "code_verifier": code_verifier,
         },
     )
-    if response.status_code != 200:
-        raise RuntimeError("Request failed.")
+    response.raise_for_status()
 
     access_token = response.json()["access_token"]
 
