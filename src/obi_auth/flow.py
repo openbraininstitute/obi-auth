@@ -2,14 +2,18 @@
 
 import base64
 import hashlib
+import logging
 import os
 import re
+import urllib.parse
 import webbrowser
 
 import httpx
 
 from obi_auth.config import settings
 from obi_auth.server import AuthServer
+
+L = logging.getLogger(__name__)
 
 
 def _generate_pkce_pair():
@@ -35,8 +39,12 @@ def _authorize(server: AuthServer, code_challenge: str, override_env: str | None
     }
 
     base_auth_url = settings.get_keycloak_auth_endpoint(override_env=override_env)
-    auth_url = f"{base_auth_url}?{'&'.join(f'{k}={v}' for k, v in params.items())}"
 
+    # Build the full URL
+    encoded_params = urllib.parse.urlencode(params)
+    auth_url = f"{base_auth_url}?{encoded_params}"
+
+    L.warning("Authentication url: %s", auth_url)
     webbrowser.open(auth_url)
 
     return server.wait_for_code()

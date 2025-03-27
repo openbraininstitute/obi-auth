@@ -1,12 +1,18 @@
 """This module provides a simple HTTP server that listens for a Keycloak authorization code."""
-
+import contextlib
+import logging
 import socket
 import threading
+from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import Self
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 
+from obi_auth.config import settings
+
+L = logging.getLogger(__name__)
 HOST = "localhost"
 
 
@@ -54,15 +60,23 @@ class AuthServer:
             s.bind(("", 0))
             return s.getsockname()[1]
 
-    def start(self) -> None:
+    @contextlib.contextmanager
+    def run(self) -> Iterator[Self]:
         """Start server in a background thread."""
         self.port = self._find_free_port()
         config = uvicorn.Config(app=self.app, port=self.port, host=HOST, log_level="error")
         server = uvicorn.Server(config=config)
         thread = threading.Thread(target=server.run, daemon=True)
-        thread.start()
+        try:
+            thread.start()
+            L.warning("Local server listening on http://%s:%s", HOST, self.port)
+            yield self
+        finally:
+            L.warning("Stopping the local server")
+            server.should_exit = True
+            thread.join(timeout=1)
 
-    def wait_for_code(self, timeout: int = 10) -> str:
+    def wait_for_code(self, timeout: int = settings.LOCAL_SERVER_TIMEOUT) -> str:
         """Wait for code."""
         if self.auth_state.event.wait(timeout):
             return self.auth_state.code
