@@ -1,4 +1,5 @@
 """This module provides a simple HTTP server that listens for a Keycloak authorization code."""
+
 import contextlib
 import logging
 import socket

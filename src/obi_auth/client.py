@@ -1,4 +1,5 @@
 """This module provides a client for the obi_auth service."""
+
 import logging
 
 from obi_auth.flow import pkce_authenticate
@@ -7,6 +8,7 @@ from obi_auth.typedef import DeploymentEnvironment
 
 L = logging.getLogger(__name__)
 
+
 def get_token(*, environment: DeploymentEnvironment | None = None) -> str | None:
     """Get token."""
     try:
@@ -14,3 +16,4 @@ def get_token(*, environment: DeploymentEnvironment | None = None) -> str | None
             return pkce_authenticate(server=local_server, override_env=environment)
     except TimeoutError as ex:
         L.warning("Error: %s", ex)
+    return None
