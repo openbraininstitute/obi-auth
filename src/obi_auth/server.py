@@ -12,6 +12,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 
 from obi_auth.config import settings
+from obi_auth.exception import LocalServerError
 
 L = logging.getLogger(__name__)
 HOST = "localhost"
@@ -51,7 +52,7 @@ class AuthServer:
     def redirect_uri(self) -> str:
         """Return redirect uril for server callback."""
         if not self.port:
-            raise RuntimeError("Server has no port assigned.")
+            raise LocalServerError("Server has no port assigned.")
         return f"http://{HOST}:{self.port}/callback"
 
     @staticmethod
@@ -82,4 +83,4 @@ class AuthServer:
         if self.auth_state.event.wait(timeout):
             self.auth_state.event.clear()
             return self.auth_state.code
-        raise TimeoutError("Timeout waiting for authorization code")
+        raise LocalServerError("Timeout waiting for authorization code")

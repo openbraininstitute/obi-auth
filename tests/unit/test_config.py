@@ -1,6 +1,7 @@
 import pytest
 
 from obi_auth import config as test_module
+from obi_auth import exception
 
 
 @pytest.fixture
@@ -20,7 +21,7 @@ def test_get_keycloak_url(settings):
     res = settings.get_keycloak_url(override_env="production")
     assert res == "https://openbraininstitute.org/auth/realms/SBO"
 
-    with pytest.raises(ValueError, match="Unknown deployment environment foo"):
+    with pytest.raises(exception.ConfigError, match="Unknown deployment environment foo"):
         settings.get_keycloak_url(override_env="foo")
 
 

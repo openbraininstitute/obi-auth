@@ -17,7 +17,7 @@ from obi_auth.typedef import DeploymentEnvironment
 L = logging.getLogger(__name__)
 
 
-def _generate_pkce_pair():
+def _generate_pkce_pair() -> tuple[str, str]:
     """Generate PKCE pair."""
     code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode("utf-8")
     code_verifier = re.sub("[^a-zA-Z0-9]+", "", code_verifier)
@@ -28,13 +28,14 @@ def _generate_pkce_pair():
     return code_verifier, code_challenge
 
 
-def _authorize(
-    server: AuthServer, code_challenge: str, override_env: DeploymentEnvironment | None
+def _build_auth_url(
+    code_challenge: str, redirect_uri: str, override_env: DeploymentEnvironment | None
 ) -> str:
+    """Construct authentication url to open with a browser."""
     params = {
         "response_type": "code",
         "client_id": settings.KEYCLOAK_CLIENT_ID,
-        "redirect_uri": server.redirect_uri,
+        "redirect_uri": redirect_uri,
         "scope": "openid",
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
@@ -45,15 +46,20 @@ def _authorize(
 
     # Build the full URL
     encoded_params = urllib.parse.urlencode(params)
-    auth_url = f"{base_auth_url}?{encoded_params}"
+    return f"{base_auth_url}?{encoded_params}"
 
+
+def _authorize(
+    server: AuthServer, code_challenge: str, override_env: DeploymentEnvironment | None
+) -> str:
+    """Ask user to login in order to retrieve a code to exchange for a token."""
+    auth_url = _build_auth_url(code_challenge, server.redirect_uri, override_env)
     L.info("Authentication url: %s", auth_url)
     webbrowser.open(auth_url)
-
     return server.wait_for_code()
 
 
-def _exhange_code_for_token(
+def _exchange_code_for_token(
     code: str, redirect_uri: str, code_verifier: str, override_env: DeploymentEnvironment | None
 ) -> str:
     response = httpx.post(
@@ -79,5 +85,5 @@ def pkce_authenticate(
     """Get access token using the PCKE authentication flow."""
     code_verifier, code_challenge = _generate_pkce_pair()
     code = _authorize(server, code_challenge, override_env)
-    access_token = _exhange_code_for_token(code, server.redirect_uri, code_verifier, override_env)
+    access_token = _exchange_code_for_token(code, server.redirect_uri, code_verifier, override_env)
     return access_token
