@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     KEYCLOAK_REALM: KeycloakRealm = KeycloakRealm.sbo
     KEYCLOAK_CLIENT_ID: str = "obi-entitysdk-auth"
 
+    LOCAL_SERVER_TIMEOUT: int = 60
+
     def get_keycloak_url(self, override_env: str | None = None):
         """Return keycloak url."""
         env = override_env or self.KEYCLOAK_ENV

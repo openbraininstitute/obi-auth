@@ -7,7 +7,7 @@ class DeploymentEnvironment(StrEnum):
     """Deployment environment."""
 
     staging = "staging"
-    production = "poroduction"
+    production = "production"
 
 
 class KeycloakRealm(StrEnum):

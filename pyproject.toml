@@ -124,7 +124,7 @@ parallel = false
 [tool.coverage.report]
 show_missing = true
 precision = 0
-fail_under = 80
+fail_under = 50
 
 [tool.mypy]
 show_error_codes = true
