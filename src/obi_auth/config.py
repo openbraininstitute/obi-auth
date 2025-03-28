@@ -2,6 +2,7 @@
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from obi_auth.exception import ConfigError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
 
 
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
                 return f"https://staging.openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
             case DeploymentEnvironment.production:
                 return f"https://openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
-        raise ValueError(f"Unknown deployment environment {env}")
+        raise ConfigError(f"Unknown deployment environment {env}")
 
     def get_keycloak_token_endpoint(self, override_env: DeploymentEnvironment | None = None) -> str:
         """Return keycloak token endpoint."""
