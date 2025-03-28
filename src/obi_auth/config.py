@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     def get_keycloak_url(self, override_env: DeploymentEnvironment | None = None):
         """Return keycloak url."""
-        match env := override_env or self.KEYCLOAK_REALM:
+        match env := override_env or self.KEYCLOAK_ENV:
             case DeploymentEnvironment.staging:
                 return f"https://staging.openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
             case DeploymentEnvironment.production:
