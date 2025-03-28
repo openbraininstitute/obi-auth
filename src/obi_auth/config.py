@@ -23,8 +23,12 @@ class Settings(BaseSettings):
 
     def get_keycloak_url(self, override_env: str | None = None):
         """Return keycloak url."""
-        env = override_env or self.KEYCLOAK_ENV
-        return f"https://{env}.openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
+        match env := override_env or self.KEYCLOAK_REALM:
+            case DeploymentEnvironment.staging:
+                return f"https://staging.openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
+            case DeploymentEnvironment.production:
+                return f"https://openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
+        raise ValueError(f"Unknown deployment environment {env}")
 
     def get_keycloak_token_endpoint(self, override_env: str | None = None) -> str:
         """Return keycloak token endpoint."""
