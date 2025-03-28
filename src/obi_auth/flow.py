@@ -12,6 +12,7 @@ import httpx
 
 from obi_auth.config import settings
 from obi_auth.server import AuthServer
+from obi_auth.typedef import DeploymentEnvironment
 
 L = logging.getLogger(__name__)
 
@@ -27,7 +28,9 @@ def _generate_pkce_pair():
     return code_verifier, code_challenge
 
 
-def _authorize(server: AuthServer, code_challenge: str, override_env: str | None) -> str:
+def _authorize(
+    server: AuthServer, code_challenge: str, override_env: DeploymentEnvironment | None
+) -> str:
     params = {
         "response_type": "code",
         "client_id": settings.KEYCLOAK_CLIENT_ID,
@@ -51,7 +54,7 @@ def _authorize(server: AuthServer, code_challenge: str, override_env: str | None
 
 
 def _exhange_code_for_token(
-    code: str, redirect_uri: str, code_verifier: str, override_env: str | None
+    code: str, redirect_uri: str, code_verifier: str, override_env: DeploymentEnvironment | None
 ) -> str:
     response = httpx.post(
         url=settings.get_keycloak_token_endpoint(override_env=override_env),
@@ -70,7 +73,9 @@ def _exhange_code_for_token(
     return access_token
 
 
-def pkce_authenticate(*, server: AuthServer, override_env: str | None = None) -> str:
+def pkce_authenticate(
+    *, server: AuthServer, override_env: DeploymentEnvironment | None = None
+) -> str:
     """Get access token using the PCKE authentication flow."""
     code_verifier, code_challenge = _generate_pkce_pair()
     code = _authorize(server, code_challenge, override_env)
