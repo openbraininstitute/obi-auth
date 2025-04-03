@@ -6,10 +6,10 @@ import logging
 import os
 import re
 import urllib.parse
-import webbrowser
 
 import httpx
 
+from obi_auth.browser import open_in_browser
 from obi_auth.config import settings
 from obi_auth.server import AuthServer
 from obi_auth.typedef import DeploymentEnvironment
@@ -50,13 +50,17 @@ def _build_auth_url(
 
 
 def _authorize(
-    server: AuthServer, code_challenge: str, override_env: DeploymentEnvironment | None
+    server: AuthServer,
+    code_challenge: str,
+    override_env: DeploymentEnvironment | None,
 ) -> str:
     """Ask user to login in order to retrieve a code to exchange for a token."""
     auth_url = _build_auth_url(code_challenge, server.redirect_uri, override_env)
+
     L.info("Authentication url: %s", auth_url)
-    webbrowser.open(auth_url)
-    return server.wait_for_code()
+
+    with open_in_browser(url=auth_url):
+        return server.wait_for_code()
 
 
 def _exchange_code_for_token(
@@ -80,7 +84,9 @@ def _exchange_code_for_token(
 
 
 def pkce_authenticate(
-    *, server: AuthServer, override_env: DeploymentEnvironment | None = None
+    *,
+    server: AuthServer,
+    override_env: DeploymentEnvironment | None = None,
 ) -> str:
     """Get access token using the PCKE authentication flow."""
     code_verifier, code_challenge = _generate_pkce_pair()
