@@ -10,11 +10,17 @@ from obi_auth.typedef import DeploymentEnvironment
 L = logging.getLogger(__name__)
 
 
-def get_token(*, environment: DeploymentEnvironment | None = None) -> str | None:
+def get_token(
+    *,
+    environment: DeploymentEnvironment | None = None,
+) -> str | None:
     """Get token."""
     try:
         with AuthServer().run() as local_server:
-            return pkce_authenticate(server=local_server, override_env=environment)
+            return pkce_authenticate(
+                server=local_server,
+                override_env=DeploymentEnvironment(environment) if environment else None,
+            )
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
     except LocalServerError as e:

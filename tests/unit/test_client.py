@@ -6,7 +6,7 @@ from obi_auth import client as test_module
 from obi_auth import exception
 
 
-@patch("obi_auth.flow.webbrowser")
+@patch("obi_auth.flow.open_in_browser")
 @patch("obi_auth.client.AuthServer")
 def test_get_token(mock_server, mock_web, httpx_mock):
     httpx_mock.add_response(method="POST", json={"access_token": "mock-token"})

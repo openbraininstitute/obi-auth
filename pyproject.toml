@@ -9,7 +9,8 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "uvicorn",
-    "fastapi"
+    "fastapi",
+    "pyautogui",
 ]
 authors = [
     {name = "Open Brain Institute", email = "info@openbraininstitute.org"}

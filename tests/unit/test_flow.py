@@ -32,7 +32,7 @@ def test_exchange_code_for_token(httpx_mock):
     assert res == "mock-token"
 
 
-@patch("obi_auth.flow.webbrowser")
+@patch("obi_auth.flow.open_in_browser")
 def test_authorize(mocked_webbrowser):
     mock_server = Mock()
     mock_server.wait_for_code.return_value = "mock-code"
