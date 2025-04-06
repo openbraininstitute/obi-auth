@@ -8,9 +8,8 @@ import re
 import urllib.parse
 import webbrowser
 
-import httpx
-
 from obi_auth.config import settings
+from obi_auth.request import exchange_code_for_token
 from obi_auth.server import AuthServer
 from obi_auth.typedef import DeploymentEnvironment
 
@@ -62,21 +61,13 @@ def _authorize(
 def _exchange_code_for_token(
     code: str, redirect_uri: str, code_verifier: str, override_env: DeploymentEnvironment | None
 ) -> str:
-    response = httpx.post(
-        url=settings.get_keycloak_token_endpoint(override_env=override_env),
-        data={
-            "grant_type": "authorization_code",
-            "code": code,
-            "client_id": settings.KEYCLOAK_CLIENT_ID,
-            "redirect_uri": redirect_uri,
-            "code_verifier": code_verifier,
-        },
+    response = exchange_code_for_token(
+        code=code,
+        redirect_uri=redirect_uri,
+        code_verifier=code_verifier,
+        override_env=override_env,
     )
-    response.raise_for_status()
-
-    access_token = response.json()["access_token"]
-
-    return access_token
+    return response.json()["access_token"]
 
 
 def pkce_authenticate(

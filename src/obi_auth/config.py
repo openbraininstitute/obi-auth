@@ -1,5 +1,9 @@
 """This module provides a config for the obi_auth service."""
 
+from typing import Annotated
+
+from cryptography.fernet import Fernet
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from obi_auth.exception import ConfigError
@@ -13,8 +17,17 @@ class Settings(BaseSettings):
         env_file=".env",
         env_prefix="OBI_AUTH_",
         env_file_encoding="utf-8",
-        case_sensitive=True,
+        case_sensitive=False,
+        validate_default=False,
     )
+
+    secret_key: Annotated[
+        str | bytes,
+        Field(
+            description="Key to use for encrypting/decrypting tokens.",
+            default_factory=Fernet.generate_key,
+        ),
+    ]  # noqa: call-arg
 
     KEYCLOAK_ENV: DeploymentEnvironment = DeploymentEnvironment.staging
     KEYCLOAK_REALM: KeycloakRealm = KeycloakRealm.sbo

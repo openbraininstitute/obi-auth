@@ -9,7 +9,9 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "uvicorn",
-    "fastapi"
+    "fastapi",
+    "cryptography>=3.0",
+    "pyjwt",
 ]
 authors = [
     {name = "Open Brain Institute", email = "info@openbraininstitute.org"}
@@ -127,6 +129,7 @@ precision = 0
 fail_under = 50
 
 [tool.mypy]
+plugins = ["pydantic.mypy"]
 show_error_codes = true
 ignore_missing_imports = true
 allow_redefinition = true
