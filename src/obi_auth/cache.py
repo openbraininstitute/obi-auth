@@ -17,8 +17,8 @@ class TokenCache:
 
     def __init__(self, storage: Storage):
         """Initialize the token cache."""
-        self._cipher = Fernet(key=settings.secret_key)
         self._storage = storage
+        self._cipher = Fernet(key=settings.secret_key)
 
     def get(self) -> str | None:
         """Get a cached token if valid, else None."""

@@ -82,7 +82,5 @@ class AuthServer:
         """Wait for code."""
         if self.auth_state.event.wait(timeout):
             self.auth_state.event.clear()
-            if self.auth_state.code is None:
-                raise LocalServerError("There was no code assigned by authentication.")
             return self.auth_state.code
         raise LocalServerError("Timeout waiting for authorization code")

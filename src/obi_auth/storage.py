@@ -14,17 +14,17 @@ class Storage:
 
     def write(self, data: TokenInfo):
         """Write token info to file."""
-        Path(self.file_path).write_text(data.model_dump_json())
+        self.file_path.write_text(data.model_dump_json())
 
     def read(self) -> TokenInfo:
         """Read token info from file."""
-        data = Path(self.file_path).read_bytes()
+        data = self.file_path.read_bytes()
         return TokenInfo.model_validate_json(data)
 
     def clear(self) -> None:
         """Delete file."""
-        Path(self.file_path).unlink(missing_ok=True)
+        self.file_path.unlink(missing_ok=True)
 
     def empty(self) -> bool:
         """Return True if file does not exist."""
-        return not Path(self.file_path).exists()
+        return not self.file_path.exists()
