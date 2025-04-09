@@ -4,16 +4,10 @@ from datetime import UTC, datetime
 
 import jwt
 from cryptography.fernet import Fernet, InvalidToken
-from pydantic import BaseModel
 
 from obi_auth.config import settings
-
-
-class TokenInfo(BaseModel):
-    """Token information."""
-
-    token: bytes
-    ttl: int
+from obi_auth.storage import Storage
+from obi_auth.typedef import TokenInfo
 
 
 class TokenCache:
@@ -21,27 +15,25 @@ class TokenCache:
 
     token_info: TokenInfo | None = None
 
-    def __init__(self):
+    def __init__(self, storage: Storage):
         """Initialize the token cache."""
         self._cipher = Fernet(key=settings.secret_key)
+        self._storage = storage
 
     def get(self) -> str | None:
         """Get a cached token if valid, else None."""
-        if self.token_info is None:
+        if self._storage.empty():
             return None
         try:
+            token_info = self._storage.read()
             return self._cipher.decrypt_at_time(
-                token=self.token_info.token,
-                ttl=self.token_info.ttl,
+                token=token_info.token,
+                ttl=token_info.ttl,
                 current_time=_now(),
             ).decode()
         except InvalidToken:
-            self.clear()
+            self._storage.clear()
             return None
-
-    def clear(self):
-        """Clear the cached token."""
-        self.token_info = None
 
     def set(self, token: str) -> None:
         """Store a new token in the cache."""
@@ -50,10 +42,11 @@ class TokenCache:
             data=token.encode(encoding="utf-8"),
             current_time=creation_time,
         )
-        self.token_info = TokenInfo(
+        token_info = TokenInfo(
             token=fernet_token,
             ttl=time_to_live,
         )
+        self._storage.write(token_info)
 
 
 def _now() -> int:

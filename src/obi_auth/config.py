@@ -1,13 +1,14 @@
 """This module provides a config for the obi_auth service."""
 
+from pathlib import Path
 from typing import Annotated
 
-from cryptography.fernet import Fernet
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from obi_auth.exception import ConfigError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
+from obi_auth.util import derive_fernet_key, get_config_path
 
 
 class Settings(BaseSettings):
@@ -25,9 +26,17 @@ class Settings(BaseSettings):
         str | bytes,
         Field(
             description="Key to use for encrypting/decrypting tokens.",
-            default_factory=Fernet.generate_key,
+            default_factory=derive_fernet_key,
         ),
     ]  # noqa: call-arg
+
+    config_path: Annotated[
+        Path,
+        Field(
+            description="Directory to store the token.",
+            default_factory=get_config_path,
+        ),
+    ]
 
     KEYCLOAK_ENV: DeploymentEnvironment = DeploymentEnvironment.staging
     KEYCLOAK_REALM: KeycloakRealm = KeycloakRealm.sbo

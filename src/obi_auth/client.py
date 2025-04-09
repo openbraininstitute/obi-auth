@@ -3,15 +3,17 @@
 import logging
 
 from obi_auth.cache import TokenCache
+from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
 from obi_auth.flow import pkce_authenticate
 from obi_auth.server import AuthServer
+from obi_auth.storage import Storage
 from obi_auth.typedef import DeploymentEnvironment
 
 L = logging.getLogger(__name__)
 
 
-_TOKEN_CACHE = TokenCache()
+_TOKEN_CACHE = TokenCache(storage=Storage(file_path=settings.config_path))
 
 
 def get_token(*, environment: DeploymentEnvironment | None = None) -> str | None:
