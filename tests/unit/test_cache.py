@@ -45,7 +45,7 @@ def test_token_cache(token):
     cache = test_module.TokenCache(storage=storage)
 
     # if no stored token get returns None
-    storage.exists.return_value = True
+    storage.exists.return_value = False
     assert cache.get() is None
 
     # set a valid token
@@ -55,7 +55,7 @@ def test_token_cache(token):
     (token_info,), _ = storage.write.call_args
 
     # get the valid token
-    storage.exists.return_value = False
+    storage.exists.return_value = True
     storage.read.return_value = token_info
 
     # fetch and decrypt the token
@@ -70,7 +70,7 @@ def test_token_cache__expired(token_expired):
 
     (token_info,), _ = storage.write.call_args
 
-    storage.exists.return_value = False
+    storage.exists.return_value = True
     storage.read.return_value = token_info
 
     res = cache.get()

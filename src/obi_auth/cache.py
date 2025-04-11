@@ -22,7 +22,7 @@ class TokenCache:
 
     def get(self) -> str | None:
         """Get a cached token if valid, else None."""
-        if self._storage.exists():
+        if not self._storage.exists():
             return None
         try:
             token_info = self._storage.read()

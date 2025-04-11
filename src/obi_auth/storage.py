@@ -27,4 +27,4 @@ class Storage:
 
     def exists(self) -> bool:
         """Return True if file does not exist."""
-        return not self.file_path.exists()
+        return self.file_path.exists()
