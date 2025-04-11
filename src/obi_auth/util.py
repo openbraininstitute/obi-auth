@@ -4,7 +4,6 @@ import base64
 import hashlib
 import platform
 import socket
-import uuid
 from pathlib import Path
 
 from cryptography.hazmat.backends import default_backend
@@ -37,9 +36,7 @@ def derive_fernet_key() -> bytes:
 def get_config_path() -> Path:
     """Get config file path."""
     file_name = f"{get_machine_salt().hex()}.json"
-    if platform.system() == "Windows":
-        directory = Path.home() / "AppData" / "Roaming" / "obi-auth"
-    else:
-        directory = Path.home() / ".config" / "obi-auth"
-    directory.mkdir(mode=0o700, exist_ok=True, parents=True)
+    directory = Path.home() / ".config" / "obi-auth"
+    directory.mkdir(exist_ok=True, parents=True)
+    directory.chmod(0o700)
     return directory / file_name
