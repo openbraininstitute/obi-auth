@@ -14,11 +14,10 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 def get_machine_salt():
     """Get machine specific salt."""
-    mac = uuid.getnode()  # MAC address
     hostname = socket.gethostname()
     system = platform.uname().system
     node = platform.uname().node
-    raw = f"{mac}-{hostname}-{system}-{node}"
+    raw = f"{hostname}-{system}-{node}"
     return hashlib.sha256(raw.encode()).digest()
 
 
