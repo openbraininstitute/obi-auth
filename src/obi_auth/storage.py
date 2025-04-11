@@ -25,6 +25,6 @@ class Storage:
         """Delete file."""
         self.file_path.unlink(missing_ok=True)
 
-    def empty(self) -> bool:
+    def exists(self) -> bool:
         """Return True if file does not exist."""
         return not self.file_path.exists()

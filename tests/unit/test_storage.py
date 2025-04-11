@@ -11,9 +11,9 @@ def path(tmp_path):
 
 def test_storage__empty(path):
     storage = test_module.Storage(path)
-    assert storage.empty()
+    assert storage.exists()
     path.write_text("foo")
-    assert not storage.empty()
+    assert not storage.exists()
 
 
 def test_storage__read(path):
@@ -46,7 +46,7 @@ def test_storage__clear(path):
     storage.clear()
 
     assert not path.exists()
-    assert storage.empty()
+    assert storage.exists()
 
     # nothing should happen
     storage.clear()

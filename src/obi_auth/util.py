@@ -42,5 +42,5 @@ def get_config_path() -> Path:
         directory = Path.home() / "AppData" / "Roaming" / "obi-auth"
     else:
         directory = Path.home() / ".config" / "obi-auth"
-    directory.mkdir(exist_ok=True, parents=True)
+    directory.mkdir(mode=0o700, exist_ok=True, parents=True)
     return directory / file_name
