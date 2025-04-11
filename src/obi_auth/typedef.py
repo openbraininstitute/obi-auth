@@ -2,6 +2,8 @@
 
 from enum import StrEnum
 
+from pydantic import BaseModel
+
 
 class DeploymentEnvironment(StrEnum):
     """Deployment environment."""
@@ -14,3 +16,10 @@ class KeycloakRealm(StrEnum):
     """Keycloak realms."""
 
     sbo = "SBO"
+
+
+class TokenInfo(BaseModel):
+    """Token information."""
+
+    token: bytes
+    ttl: int

@@ -8,7 +8,13 @@ from obi_auth import exception
 
 @patch("obi_auth.flow.webbrowser")
 @patch("obi_auth.client.AuthServer")
-def test_get_token(mock_server, mock_web, httpx_mock):
+@patch("obi_auth.client._TOKEN_CACHE")
+def test_get_token(mock_cache, mock_server, mock_web, httpx_mock):
+    mock_cache.get.return_value = "foo"
+    assert test_module.get_token() == "foo"
+
+    mock_cache.get.return_value = None
+
     httpx_mock.add_response(method="POST", json={"access_token": "mock-token"})
 
     mock_local = Mock()
