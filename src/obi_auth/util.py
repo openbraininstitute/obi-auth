@@ -33,10 +33,6 @@ def derive_fernet_key() -> bytes:
     return base64.urlsafe_b64encode(key)  # Fernet requires base64 encoding
 
 
-def get_config_path() -> Path:
+def get_config_dir() -> Path:
     """Get config file path."""
-    file_name = f"{get_machine_salt().hex()}.json"
-    directory = Path.home() / ".config" / "obi-auth"
-    directory.mkdir(exist_ok=True, parents=True)
-    directory.chmod(0o700)
-    return directory / file_name
+    return Path.home() / ".config" / "obi-auth"

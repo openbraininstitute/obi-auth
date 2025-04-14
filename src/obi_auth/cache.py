@@ -15,27 +15,26 @@ class TokenCache:
 
     token_info: TokenInfo | None = None
 
-    def __init__(self, storage: Storage):
+    def __init__(self):
         """Initialize the token cache."""
-        self._storage = storage
         self._cipher = Fernet(key=settings.secret_key)
 
-    def get(self) -> str | None:
+    def get(self, storage: Storage) -> str | None:
         """Get a cached token if valid, else None."""
-        if not self._storage.exists():
+        if not storage.exists():
             return None
         try:
-            token_info = self._storage.read()
+            token_info = storage.read()
             return self._cipher.decrypt_at_time(
                 token=token_info.token,
                 ttl=token_info.ttl,
                 current_time=_now(),
             ).decode()
         except InvalidToken:
-            self._storage.clear()
+            storage.clear()
             return None
 
-    def set(self, token: str) -> None:
+    def set(self, token: str, storage: Storage) -> None:
         """Store a new token in the cache."""
         creation_time, time_to_live = _get_token_times(token)
         fernet_token: bytes = self._cipher.encrypt_at_time(
@@ -46,7 +45,7 @@ class TokenCache:
             token=fernet_token,
             ttl=time_to_live,
         )
-        self._storage.write(token_info)
+        storage.write(token_info)
 
 
 def _now() -> int:

@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from obi_auth.exception import ConfigError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
-from obi_auth.util import derive_fernet_key, get_config_path
+from obi_auth.util import derive_fernet_key, get_config_dir
 
 
 class Settings(BaseSettings):
@@ -30,11 +30,11 @@ class Settings(BaseSettings):
         ),
     ]  # noqa: call-arg
 
-    config_path: Annotated[
+    config_dir: Annotated[
         Path,
         Field(
             description="Directory to store the token.",
-            default_factory=get_config_path,
+            default_factory=get_config_dir,
         ),
     ]
 

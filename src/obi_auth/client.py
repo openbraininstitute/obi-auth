@@ -13,18 +13,20 @@ from obi_auth.typedef import DeploymentEnvironment
 L = logging.getLogger(__name__)
 
 
-_TOKEN_CACHE = TokenCache(storage=Storage(file_path=settings.config_path))
+_TOKEN_CACHE = TokenCache()
 
 
-def get_token(*, environment: DeploymentEnvironment | None = None) -> str | None:
+def get_token(*, environment: DeploymentEnvironment = DeploymentEnvironment.staging) -> str | None:
     """Get token."""
-    if token := _TOKEN_CACHE.get():
+    storage = Storage(config_dir=settings.config_dir, environment=environment)
+
+    if token := _TOKEN_CACHE.get(storage):
         return token
 
     try:
         with AuthServer().run() as local_server:
             token = pkce_authenticate(server=local_server, override_env=environment)
-            _TOKEN_CACHE.set(token)
+            _TOKEN_CACHE.set(token, storage)
             return token
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
