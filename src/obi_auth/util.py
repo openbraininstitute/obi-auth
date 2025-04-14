@@ -1,9 +1,9 @@
 """Utilities."""
 
 import base64
+import getpass
 import hashlib
 import platform
-import socket
 from pathlib import Path
 
 from cryptography.hazmat.backends import default_backend
@@ -13,10 +13,12 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 def get_machine_salt():
     """Get machine specific salt."""
-    hostname = socket.gethostname()
-    system = platform.uname().system
-    node = platform.uname().node
-    raw = f"{hostname}-{system}-{node}"
+    uname = platform.uname()
+    network_name = platform.node()
+    user = getpass.getuser()
+
+    raw = f"{uname.system}-{uname.release}-{uname.version}-{uname.machine}-{network_name}-{user}"
+    print(raw)
     return hashlib.sha256(raw.encode()).digest()
 
 
