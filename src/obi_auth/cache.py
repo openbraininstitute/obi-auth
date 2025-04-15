@@ -1,6 +1,6 @@
 """Token cache module."""
 
-from datetime import UTC, datetime
+import time
 
 import jwt
 from cryptography.fernet import Fernet, InvalidToken
@@ -49,7 +49,7 @@ class TokenCache:
 
 def _now() -> int:
     """Return UTC timestamp now."""
-    return int(datetime.now(UTC).timestamp())
+    return int(time.time())
 
 
 def _get_token_times(token: str) -> tuple[int, int]:
