@@ -7,8 +7,8 @@ from obi_auth.typedef import DeploymentEnvironment, TokenInfo
 FILE_MODE = 0o600  # user only read/write
 DIRECTORY_MODE = 0o700
 ENV_TO_FILE_NAME = {
-    DeploymentEnvironment.staging: "token_staging.json",
-    DeploymentEnvironment.production: "token_production.json",
+    DeploymentEnvironment.staging: "token-staging.json",
+    DeploymentEnvironment.production: "token-production.json",
 }
 
 
