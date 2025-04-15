@@ -42,37 +42,36 @@ def token_expired(token_decoded):
 
 def test_token_cache(token):
     storage = Mock()
-    cache = test_module.TokenCache(storage=storage)
+    cache = test_module.TokenCache()
 
     # if no stored token get returns None
-    storage.exists.return_value = False
-    assert cache.get() is None
+    storage.read.return_value = None
+    assert cache.get(storage) is None
 
     # set a valid token
-    cache.set(token)
+    cache.set(token, storage)
 
     # grab the stored token from the mock
     (token_info,), _ = storage.write.call_args
 
     # get the valid token
-    storage.exists.return_value = True
     storage.read.return_value = token_info
 
     # fetch and decrypt the token
-    res = cache.get()
+    res = cache.get(storage)
     assert res == token
 
 
 def test_token_cache__expired(token_expired):
     storage = Mock()
-    cache = test_module.TokenCache(storage=storage)
-    cache.set(token_expired)
+    cache = test_module.TokenCache()
+    cache.set(token_expired, storage)
 
     (token_info,), _ = storage.write.call_args
 
     storage.exists.return_value = True
     storage.read.return_value = token_info
 
-    res = cache.get()
+    res = cache.get(storage)
     assert res is None
     storage.clear.assert_called_once()
