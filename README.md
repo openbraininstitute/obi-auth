@@ -8,6 +8,8 @@
 
 obi-auth is a library for retrieving Keycloak access tokens interactively. It helps developers and testers quickly authenticate against Keycloak without writing scripts or configuring complex clients.
 
+> [!CAUTION]
+> obi-auth is designed to be used interactively and should not be used within a service or application.
 
 ## Installation
 
