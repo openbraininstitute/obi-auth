@@ -16,9 +16,7 @@ def get_machine_salt():
     uname = platform.uname()
     network_name = platform.node()
     user = getpass.getuser()
-
     raw = f"{uname.system}-{uname.release}-{uname.version}-{uname.machine}-{network_name}-{user}"
-    print(raw)
     return hashlib.sha256(raw.encode()).digest()
 
 

@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 import jwt
 from cryptography.fernet import Fernet, InvalidToken
 
-from obi_auth.config import settings
 from obi_auth.storage import Storage
 from obi_auth.typedef import TokenInfo
+from obi_auth.util import derive_fernet_key
 
 
 class TokenCache:
@@ -17,14 +17,13 @@ class TokenCache:
 
     def __init__(self):
         """Initialize the token cache."""
-        self._cipher = Fernet(key=settings.secret_key)
+        self._cipher = Fernet(key=derive_fernet_key())
 
     def get(self, storage: Storage) -> str | None:
         """Get a cached token if valid, else None."""
-        if not storage.exists():
+        if not (token_info := storage.read()):
             return None
         try:
-            token_info = storage.read()
             return self._cipher.decrypt_at_time(
                 token=token_info.token,
                 ttl=token_info.ttl,

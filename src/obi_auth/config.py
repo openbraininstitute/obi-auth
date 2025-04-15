@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from obi_auth.exception import ConfigError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
-from obi_auth.util import derive_fernet_key, get_config_dir
+from obi_auth.util import get_config_dir
 
 
 class Settings(BaseSettings):
@@ -21,14 +21,6 @@ class Settings(BaseSettings):
         case_sensitive=False,
         validate_default=False,
     )
-
-    secret_key: Annotated[
-        str | bytes,
-        Field(
-            description="Key to use for encrypting/decrypting tokens.",
-            default_factory=derive_fernet_key,
-        ),
-    ]  # noqa: call-arg
 
     config_dir: Annotated[
         Path,

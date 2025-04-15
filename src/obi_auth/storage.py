@@ -26,8 +26,10 @@ class Storage:
         self._ensure_file_mode()
         self._file_path.write_text(data.model_dump_json())
 
-    def read(self) -> TokenInfo:
+    def read(self) -> TokenInfo | None:
         """Read token info from file."""
+        if not self.exists():
+            return None
         data = self._file_path.read_bytes()
         return TokenInfo.model_validate_json(data)
 

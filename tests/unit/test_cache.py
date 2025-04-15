@@ -6,8 +6,10 @@ from cryptography.fernet import Fernet
 
 from obi_auth import cache as test_module
 from obi_auth.config import settings
+from obi_auth.util import derive_fernet_key
 
-CIPHER = Fernet(key=settings.secret_key)
+
+CIPHER = Fernet(key=derive_fernet_key())
 
 
 @pytest.fixture(scope="module")
