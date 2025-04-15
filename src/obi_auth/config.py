@@ -1,9 +1,14 @@
 """This module provides a config for the obi_auth service."""
 
+from pathlib import Path
+from typing import Annotated
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from obi_auth.exception import ConfigError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
+from obi_auth.util import get_config_dir
 
 
 class Settings(BaseSettings):
@@ -13,8 +18,17 @@ class Settings(BaseSettings):
         env_file=".env",
         env_prefix="OBI_AUTH_",
         env_file_encoding="utf-8",
-        case_sensitive=True,
+        case_sensitive=False,
+        validate_default=False,
     )
+
+    config_dir: Annotated[
+        Path,
+        Field(
+            description="Directory to store the token.",
+            default_factory=get_config_dir,
+        ),
+    ]
 
     KEYCLOAK_ENV: DeploymentEnvironment = DeploymentEnvironment.staging
     KEYCLOAK_REALM: KeycloakRealm = KeycloakRealm.sbo
