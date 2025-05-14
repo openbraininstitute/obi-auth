@@ -18,9 +18,11 @@ _TOKEN_CACHE = TokenCache()
 
 def get_token(*, environment: DeploymentEnvironment = DeploymentEnvironment.staging) -> str | None:
     """Get token."""
+    L.debug("Using %s as the config dir", settings.config_dir)
     storage = Storage(config_dir=settings.config_dir, environment=environment)
 
     if token := _TOKEN_CACHE.get(storage):
+        L.debug("Using cached token")
         return token
 
     try:

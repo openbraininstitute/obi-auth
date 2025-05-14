@@ -5,13 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "obi_auth"
 dependencies = [
+    "click",
+    "cryptography>=3.0",
+    "fastapi",
     "httpx",
     "pydantic",
     "pydantic-settings",
-    "uvicorn",
-    "fastapi",
-    "cryptography>=3.0",
     "pyjwt",
+    "uvicorn",
 ]
 authors = [
     {name = "Open Brain Institute", email = "info@openbraininstitute.org"}
@@ -34,6 +35,9 @@ dynamic = ["version"]
 documentation = "https://github.com/openbraininstitute/obi-auth"
 repository = "https://github.com/openbraininstitute/obi-auth"
 changelog = "https://github.com/openbraininstitute/obi-auth/CHANGELOG.rst"
+
+[project.scripts]
+obi-auth = "obi_auth.cli:main"
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
