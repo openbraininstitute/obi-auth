@@ -5,7 +5,7 @@ import logging
 
 import click
 
-from obi_auth import get_token
+import obi_auth
 
 
 @click.group()
@@ -23,9 +23,9 @@ def main(log_level):
 
 @main.command()
 @click.option("--environment", "-e", default="staging", help="The person to greet")
-def auth(environment):
+def get_token(environment):
     """Authenticate, print the token to stdout."""
-    access_token = get_token(environment=environment)
+    access_token = obi_auth.get_token(environment=environment)
     print(access_token)
 
 
