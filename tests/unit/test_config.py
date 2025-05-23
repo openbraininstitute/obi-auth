@@ -19,7 +19,7 @@ def test_get_keycloak_url(settings):
     assert res == "https://staging.openbraininstitute.org/auth/realms/SBO"
 
     res = settings.get_keycloak_url(override_env="production")
-    assert res == "https://openbraininstitute.org/auth/realms/SBO"
+    assert res == "https://www.openbraininstitute.org/auth/realms/SBO"
 
     with pytest.raises(exception.ConfigError, match="Unknown deployment environment foo"):
         settings.get_keycloak_url(override_env="foo")
@@ -39,7 +39,7 @@ def test_get_keycloak_token_endpoint(settings):
     )
 
     res = settings.get_keycloak_token_endpoint(override_env="production")
-    assert res == "https://openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
+    assert res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
 
 
 def test_get_keycloak_auth_endpoint(settings):
@@ -54,4 +54,4 @@ def test_get_keycloak_auth_endpoint(settings):
     )
 
     res = settings.get_keycloak_auth_endpoint(override_env="production")
-    assert res == "https://openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
+    assert res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
