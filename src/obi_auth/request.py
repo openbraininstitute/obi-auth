@@ -27,3 +27,14 @@ def exchange_code_for_token(
     )
     response.raise_for_status()
     return response
+
+
+def user_info(
+    token: str,
+    environment: DeploymentEnvironment | None = None,
+):
+    """Request user info with a valid token."""
+    url = settings.get_keycloak_user_info_endpoint(environment)
+    response = httpx.post(url, headers={"Authorization": f"Bearer {token}"})
+    response.raise_for_status()
+    return response

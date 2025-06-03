@@ -3,11 +3,14 @@
 import logging
 from collections.abc import Callable
 
+import jwt
+
 from obi_auth.cache import TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
 from obi_auth.flows.daf import daf_authenticate
 from obi_auth.flows.pkce import pkce_authenticate
+from obi_auth.request import user_info
 from obi_auth.server import AuthServer
 from obi_auth.storage import Storage
 from obi_auth.typedef import AuthMode, DeploymentEnvironment
@@ -64,3 +67,15 @@ def _daf_authenticate(environment: DeploymentEnvironment) -> str:
         return daf_authenticate(environment=environment)
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
+
+
+def get_token_info(token: str) -> dict:
+    """Decode token information."""
+    return jwt.decode(token, options={"verify_signature": False})
+
+
+def get_user_info(
+    token: str, environment: DeploymentEnvironment = DeploymentEnvironment.staging
+) -> dict:
+    """Get user info from valid token."""
+    return user_info(token, environment=environment).json()
