@@ -1,6 +1,6 @@
 from unittest.mock import Mock, patch
 
-from obi_auth import flow as test_module
+from obi_auth.flows import pkce as test_module
 
 
 def test_build_auth_url():
@@ -32,7 +32,7 @@ def test_exchange_code_for_token(httpx_mock):
     assert res == "mock-token"
 
 
-@patch("obi_auth.flow.webbrowser")
+@patch("obi_auth.flows.pkce.webbrowser")
 def test_authorize(mocked_webbrowser):
     mock_server = Mock()
     mock_server.wait_for_code.return_value = "mock-code"

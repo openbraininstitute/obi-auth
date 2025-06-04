@@ -1,6 +1,7 @@
 """This module provides a client for the obi_auth service."""
 
 import logging
+from collections.abc import Callable
 
 from obi_auth.cache import TokenCache
 from obi_auth.config import settings
@@ -30,16 +31,20 @@ def get_token(
         L.debug("Using cached token")
         return token
 
-    auth_method = {
-        AuthMode.pkce: _pkce_authenticate,
-        AuthMode.daf: _daf_authenticate,
-    }[auth_mode]
+    auth_method = _get_auth_method(auth_mode)
 
     token = auth_method(environment)
 
     _TOKEN_CACHE.set(token, storage)
 
     return token
+
+
+def _get_auth_method(auth_mode: AuthMode) -> Callable:
+    return {
+        AuthMode.pkce: _pkce_authenticate,
+        AuthMode.daf: _daf_authenticate,
+    }[auth_mode]
 
 
 def _pkce_authenticate(environment: DeploymentEnvironment) -> str:
@@ -55,4 +60,7 @@ def _pkce_authenticate(environment: DeploymentEnvironment) -> str:
 
 
 def _daf_authenticate(environment: DeploymentEnvironment) -> str:
-    return daf_authenticate(environment=environment)
+    try:
+        return daf_authenticate(environment=environment)
+    except AuthFlowError as e:
+        raise ClientError("Authentication process failed.") from e

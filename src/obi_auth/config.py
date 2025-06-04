@@ -36,6 +36,9 @@ class Settings(BaseSettings):
 
     LOCAL_SERVER_TIMEOUT: int = 60
 
+    POLLING_INTERVAL: int = 1  # seconds
+    POLLING_MAX_RETRIES: int = 60
+
     def get_keycloak_url(self, override_env: DeploymentEnvironment | None = None):
         """Return keycloak url."""
         match env := override_env or self.KEYCLOAK_ENV:

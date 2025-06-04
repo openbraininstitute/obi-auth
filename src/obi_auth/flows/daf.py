@@ -6,6 +6,7 @@ from time import sleep
 import httpx
 
 from obi_auth.config import settings
+from obi_auth.exception import AuthFlowError
 from obi_auth.typedef import DeploymentEnvironment
 
 L = logging.getLogger(__name__)
@@ -13,17 +14,22 @@ L = logging.getLogger(__name__)
 
 def daf_authenticate(*, environment: DeploymentEnvironment) -> str:
     """Get access token using Device Authentication Flow."""
-    verification_url, device_code = _get_device_code_response(environment=environment)
+    verification_url, device_code = _get_device_url_code(environment=environment)
 
     print("Please open url in a different tab: ", verification_url)
 
-    return _poll_device_code_token(device_code, environment)
+    return _poll_device_code_token(
+        device_code,
+        environment,
+        interval=settings.POLLING_INTERVAL,
+        max_retries=settings.POLLING_MAX_RETRIES,
+    )
 
 
-def _get_device_code_response(
+def _get_device_url_code(
     *,
     environment: DeploymentEnvironment,
-):
+) -> tuple[str, str]:
     url = settings.get_keycloak_device_auth_endpoint(environment)
     response = httpx.post(
         url=url,
@@ -36,17 +42,17 @@ def _get_device_code_response(
     return data["verification_uri_complete"], data["device_code"]
 
 
-def _poll_device_code_token(device_code, environment):
-    while True:
+def _poll_device_code_token(device_code, environment, interval: int, max_retries: int) -> str:
+    for _ in range(max_retries):
         try:
             return _get_device_code_token(device_code, environment)
-        except:
-            pass
+        except httpx.HTTPStatusError:
+            sleep(interval)
 
-        sleep(1)
+    raise AuthFlowError("Polling using device code reached max retries.")
 
 
-def _get_device_code_token(device_code: str, environment: DeploymentEnvironment):
+def _get_device_code_token(device_code: str, environment: DeploymentEnvironment) -> str:
     url = settings.get_keycloak_token_endpoint(environment)
     response = httpx.post(
         url=url,
