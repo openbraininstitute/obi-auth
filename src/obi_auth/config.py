@@ -55,5 +55,12 @@ class Settings(BaseSettings):
         base_url = self.get_keycloak_url(override_env=override_env)
         return f"{base_url}/protocol/openid-connect/auth"
 
+    def get_keycloak_device_auth_endpoint(
+        self, override_env: DeploymentEnvironment | None = None
+    ) -> str:
+        """Return keycloack device auth endpoint."""
+        base_url = self.get_keycloak_url(override_env=override_env)
+        return f"{base_url}/protocol/openid-connect/auth/device"
+
 
 settings = Settings()

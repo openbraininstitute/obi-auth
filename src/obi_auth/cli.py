@@ -22,7 +22,8 @@ def main(log_level):
 
 
 @main.command()
-@click.option("--environment", "-e", default="staging", help="The person to greet")
+@click.option("--environment", "-e", default="staging", help="Deploymend environment")
+@click.option("--auth-mode", "-m", default="pkce", help="Authentication method")
 def get_token(environment):
     """Authenticate, print the token to stdout."""
     access_token = obi_auth.get_token(environment=environment)

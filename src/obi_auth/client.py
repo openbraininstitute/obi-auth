@@ -5,10 +5,11 @@ import logging
 from obi_auth.cache import TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
-from obi_auth.flow import pkce_authenticate
+from obi_auth.flows.daf import daf_authenticate
+from obi_auth.flows.pkce import pkce_authenticate
 from obi_auth.server import AuthServer
 from obi_auth.storage import Storage
-from obi_auth.typedef import DeploymentEnvironment
+from obi_auth.typedef import AuthMode, DeploymentEnvironment
 
 L = logging.getLogger(__name__)
 
@@ -16,7 +17,11 @@ L = logging.getLogger(__name__)
 _TOKEN_CACHE = TokenCache()
 
 
-def get_token(*, environment: DeploymentEnvironment = DeploymentEnvironment.staging) -> str | None:
+def get_token(
+    *,
+    environment: DeploymentEnvironment = DeploymentEnvironment.staging,
+    auth_mode: AuthMode = AuthMode.pkce,
+) -> str | None:
     """Get token."""
     L.debug("Using %s as the config dir", settings.config_dir)
     storage = Storage(config_dir=settings.config_dir, environment=environment)
@@ -25,14 +30,29 @@ def get_token(*, environment: DeploymentEnvironment = DeploymentEnvironment.stag
         L.debug("Using cached token")
         return token
 
+    auth_method = {
+        AuthMode.pkce: _pkce_authenticate,
+        AuthMode.daf: _daf_authenticate,
+    }[auth_mode]
+
+    token = auth_method(environment)
+
+    _TOKEN_CACHE.set(token, storage)
+
+    return token
+
+
+def _pkce_authenticate(environment: DeploymentEnvironment) -> str:
     try:
         with AuthServer().run() as local_server:
-            token = pkce_authenticate(server=local_server, override_env=environment)
-            _TOKEN_CACHE.set(token, storage)
-            return token
+            return pkce_authenticate(server=local_server, environment=environment)
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
     except LocalServerError as e:
         raise ClientError("Local server failed to authenticate.") from e
     except ConfigError as e:
         raise ClientError("There is a mistake with configuration settings.") from e
+
+
+def _daf_authenticate(environment: DeploymentEnvironment) -> str:
+    return daf_authenticate(environment=environment)

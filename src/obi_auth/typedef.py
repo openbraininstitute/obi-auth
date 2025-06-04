@@ -1,6 +1,6 @@
 """This module provides typedefs for the obi_auth service."""
 
-from enum import StrEnum
+from enum import StrEnum, auto
 
 from pydantic import BaseModel
 
@@ -8,8 +8,8 @@ from pydantic import BaseModel
 class DeploymentEnvironment(StrEnum):
     """Deployment environment."""
 
-    staging = "staging"
-    production = "production"
+    staging = auto()
+    production = auto()
 
 
 class KeycloakRealm(StrEnum):
@@ -23,3 +23,10 @@ class TokenInfo(BaseModel):
 
     token: bytes
     ttl: int
+
+
+class AuthMode(StrEnum):
+    """Authentication models."""
+
+    pkce = auto()
+    daf = auto()
