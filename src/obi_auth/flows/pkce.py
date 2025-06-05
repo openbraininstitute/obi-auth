@@ -71,10 +71,10 @@ def _exchange_code_for_token(
 
 
 def pkce_authenticate(
-    *, server: AuthServer, override_env: DeploymentEnvironment | None = None
+    *, server: AuthServer, environment: DeploymentEnvironment | None = None
 ) -> str:
     """Get access token using the PCKE authentication flow."""
     code_verifier, code_challenge = _generate_pkce_pair()
-    code = _authorize(server, code_challenge, override_env)
-    access_token = _exchange_code_for_token(code, server.redirect_uri, code_verifier, override_env)
+    code = _authorize(server, code_challenge, environment)
+    access_token = _exchange_code_for_token(code, server.redirect_uri, code_verifier, environment)
     return access_token

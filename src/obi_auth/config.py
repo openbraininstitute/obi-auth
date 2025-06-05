@@ -36,6 +36,9 @@ class Settings(BaseSettings):
 
     LOCAL_SERVER_TIMEOUT: int = 60
 
+    POLLING_INTERVAL: int = 1  # seconds
+    POLLING_MAX_RETRIES: int = 60
+
     def get_keycloak_url(self, override_env: DeploymentEnvironment | None = None):
         """Return keycloak url."""
         match env := override_env or self.KEYCLOAK_ENV:
@@ -54,6 +57,13 @@ class Settings(BaseSettings):
         """Return keycloak auth endpoint."""
         base_url = self.get_keycloak_url(override_env=override_env)
         return f"{base_url}/protocol/openid-connect/auth"
+
+    def get_keycloak_device_auth_endpoint(
+        self, override_env: DeploymentEnvironment | None = None
+    ) -> str:
+        """Return keycloack device auth endpoint."""
+        base_url = self.get_keycloak_url(override_env=override_env)
+        return f"{base_url}/protocol/openid-connect/auth/device"
 
 
 settings = Settings()
