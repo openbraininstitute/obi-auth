@@ -46,7 +46,3 @@ def get_token(environment, auth_mode, show_decoded, show_user_info):
 
     if show_user_info:
         pprint.pprint(obi_auth.get_user_info(access_token, environment=environment))
-
-
-if __name__ == "__main__":
-    main()

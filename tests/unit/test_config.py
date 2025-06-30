@@ -1,14 +1,6 @@
 import pytest
 
-from obi_auth import config as test_module
 from obi_auth import exception
-
-
-@pytest.fixture
-def settings(monkeypatch):
-    monkeypatch.setenv("KEYCLOAK_ENV", "staging")
-    monkeypatch.setenv("KEYCLOAK_REALM", "SBO")
-    return test_module.Settings()
 
 
 def test_get_keycloak_url(settings):
@@ -55,3 +47,22 @@ def test_get_keycloak_auth_endpoint(settings):
 
     res = settings.get_keycloak_auth_endpoint(override_env="production")
     assert res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
+
+
+def test_get_keycloak_user_info_endpoint(settings):
+    res = settings.get_keycloak_user_info_endpoint()
+    assert (
+        res
+        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
+    )
+
+    res = settings.get_keycloak_user_info_endpoint(override_env="staging")
+    assert (
+        res
+        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
+    )
+
+    res = settings.get_keycloak_user_info_endpoint(override_env="production")
+    assert (
+        res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
+    )
