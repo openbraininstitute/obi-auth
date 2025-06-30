@@ -36,7 +36,9 @@ def main(log_level):
 @click.option("--show-user-info", help="Show user info information", is_flag=True, default=False)
 def get_token(environment, auth_mode, show_decoded, show_user_info):
     """Authenticate, print the token to stdout."""
-    access_token = obi_auth.get_token(environment=environment, auth_mode=auth_mode)
+    environment = DeploymentEnvironment(environment)
+
+    access_token = obi_auth.get_token(environment=environment, auth_mode=AuthMode(auth_mode))
     print(access_token)
 
     if show_decoded:
