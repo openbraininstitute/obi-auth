@@ -38,15 +38,15 @@ def _get_device_url_code(
 
 def _poll_device_code_token(device_info: AuthDeviceInfo, environment: DeploymentEnvironment) -> str:
     for _ in range(device_info.max_retries):
-        try:
-            return _get_device_code_token(device_info, environment)
-        except httpx.HTTPStatusError:
-            sleep(device_info.interval)
-
+        if token := _get_device_code_token(device_info, environment):
+            return token
+        sleep(device_info.interval)
     raise AuthFlowError("Polling using device code reached max retries.")
 
 
-def _get_device_code_token(device_info: AuthDeviceInfo, environment: DeploymentEnvironment) -> str:
+def _get_device_code_token(
+    device_info: AuthDeviceInfo, environment: DeploymentEnvironment
+) -> str | None:
     url = settings.get_keycloak_token_endpoint(environment)
     response = httpx.post(
         url=url,
@@ -56,6 +56,8 @@ def _get_device_code_token(device_info: AuthDeviceInfo, environment: DeploymentE
             "device_code": device_info.device_code,
         },
     )
+    if response.status_code == 400 and response.json()["error"] == "authorization_pending":
+        return None
     response.raise_for_status()
     data = response.json()
     return data["access_token"]

@@ -1,6 +1,5 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import httpx
 import pytest
 
 from obi_auth.exception import AuthFlowError
@@ -13,10 +12,10 @@ def device_info():
     return AuthDeviceInfo.model_validate(
         {
             "user_code": "user_code",
-            "verification_url": "foo",
+            "verification_uri": "foo",
             "verification_uri_complete": "foo",
-            "expires_in": 600,
-            "interval": 5,
+            "expires_in": 2,
+            "interval": 1,
             "device_code": "bar",
         }
     )
@@ -40,13 +39,15 @@ def test_device_code_token(httpx_mock, device_info):
     res = test_module._get_device_code_token(device_info, None)
     assert res == "foo"
 
+    httpx_mock.add_response(method="POST", status_code=400, json={"error": "authorization_pending"})
+    res = test_module._get_device_code_token(device_info, None)
+    assert res is None
+
 
 @patch("obi_auth.flows.daf._get_device_code_token")
 def test_poll_device_code_token(mock_code_token_method, device_info):
-    mock_code_token_method.side_effect = httpx.HTTPStatusError(
-        message="foo", request=Mock(), response=Mock()
-    )
-    device_info.interval = 1
+    mock_code_token_method.return_value = None
+
     device_info.expires_in = 1
     with pytest.raises(AuthFlowError, match="Polling using device code reached max retries."):
         test_module._poll_device_code_token(device_info, None)
