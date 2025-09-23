@@ -30,3 +30,19 @@ class AuthMode(StrEnum):
 
     pkce = auto()
     daf = auto()
+
+
+class AuthDeviceInfo(BaseModel):
+    """Model for auth payload returned by keycloak device auth flow."""
+
+    device_code: str
+    user_code: str
+    verification_url: str
+    verification_uri_complete: str
+    expires_in: int
+    interval: int
+
+    @property
+    def max_retries(self) -> int:
+        """Return max retries from expiration time and polling interval."""
+        return self.expires_in // self.interval
