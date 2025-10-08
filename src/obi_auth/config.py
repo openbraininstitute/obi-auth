@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     KEYCLOAK_REALM: KeycloakRealm = KeycloakRealm.sbo
     KEYCLOAK_CLIENT_ID: str = "obi-entitysdk-auth"
 
+    EPSILON_TOKEN_TTL_SECONDS: int = 60
+
     LOCAL_SERVER_TIMEOUT: int = 60
 
     def get_keycloak_url(self, override_env: DeploymentEnvironment | None = None):
