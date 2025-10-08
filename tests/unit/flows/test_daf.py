@@ -6,6 +6,8 @@ from obi_auth.exception import AuthFlowError
 from obi_auth.flows import daf as test_module
 from obi_auth.typedef import AuthDeviceInfo, DeploymentEnvironment
 
+ENV = DeploymentEnvironment.staging
+
 
 @pytest.fixture
 def device_info():
@@ -23,24 +25,21 @@ def device_info():
 
 def test_daf_authenticate(httpx_mock, device_info):
     httpx_mock.add_response(method="POST", json=device_info.model_dump(mode="json"))
-    httpx_mock.add_response(
-        method="POST",
-        json={
-            "access_token": "token",
-        },
-    )
+    mock_resp = {"access_token": "token"}
+    httpx_mock.add_response(method="POST", json=mock_resp)
     res = test_module.daf_authenticate(environment=DeploymentEnvironment.staging)
-    assert res == "token"
+    assert res == mock_resp
 
 
 def test_device_code_token(httpx_mock, device_info):
-    httpx_mock.add_response(method="POST", json={"access_token": "foo"})
+    mock_resp = {"access_token": "foo"}
+    httpx_mock.add_response(method="POST", json=mock_resp)
 
-    res = test_module._get_device_code_token(device_info, None)
-    assert res == "foo"
+    res = test_module._get_device_code_token(device_info, ENV)
+    assert res == mock_resp
 
     httpx_mock.add_response(method="POST", status_code=400, json={"error": "authorization_pending"})
-    res = test_module._get_device_code_token(device_info, None)
+    res = test_module._get_device_code_token(device_info, ENV)
     assert res is None
 
 
@@ -50,4 +49,4 @@ def test_poll_device_code_token(mock_code_token_method, device_info):
 
     device_info.expires_in = 1
     with pytest.raises(AuthFlowError, match="Polling using device code reached max retries."):
-        test_module._poll_device_code_token(device_info, None)
+        test_module._poll_device_code_token(device_info, ENV)

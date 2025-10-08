@@ -32,7 +32,7 @@ def get_token(
 
     if token := _TOKEN_CACHE.get(storage):
         L.debug("Using cached token")
-        return token
+        return token["access_token"]
 
     auth_method = _get_auth_method(auth_mode)
 
@@ -40,7 +40,7 @@ def get_token(
 
     _TOKEN_CACHE.set(token, storage)
 
-    return token
+    return token["access_token"]
 
 
 def _get_auth_method(auth_mode: AuthMode) -> Callable:
