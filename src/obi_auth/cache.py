@@ -36,7 +36,8 @@ def _get_access_token(token: dict) -> dict | None:
                 "refresh_token": token["refresh_token"],
             },
         )
-        return resp.json()
+        if resp.is_success:
+            return resp.json()
 
     return None
 
