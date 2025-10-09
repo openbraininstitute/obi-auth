@@ -5,20 +5,22 @@ import pytest
 
 from obi_auth import client as test_module
 from obi_auth import exception
-from obi_auth.typedef import AuthMode
+from obi_auth.typedef import AuthMode, DeploymentEnvironment
+
+ENV = DeploymentEnvironment.staging
 
 
 @patch("obi_auth.client._get_auth_method")
 @patch("obi_auth.client._TOKEN_CACHE")
 def test_get_token(mock_cache, mock_method):
-    mock_cache.get.return_value = "foo"
+    mock_cache.get.return_value = {"access_token": "foo"}
     assert test_module.get_token() == "foo"
 
     mock_cache.get.return_value = None
 
-    mock_method.return_value = lambda x: "mock-token"
+    mock_method.return_value = lambda x: {"access_token": "mock_token"}
 
-    assert test_module.get_token() == "mock-token"
+    assert test_module.get_token() == "mock_token"
 
 
 def test_get_auth_method():
@@ -32,36 +34,37 @@ def test_get_auth_method():
 @patch("obi_auth.flows.pkce.webbrowser")
 @patch("obi_auth.client.AuthServer")
 def test_pkce_authenticate(mock_server, mock_web, httpx_mock):
-    httpx_mock.add_response(method="POST", json={"access_token": "mock-token"})
+    mock_resp = {"access_token": "mock-token"}
+    httpx_mock.add_response(method="POST", json=mock_resp)
 
     mock_local = Mock()
     mock_local.redirect_uri = "mock-redirect-uri"
     mock_local.wait_for_code.return_value = "mock-code"
     mock_server.run.return_value.__enter__.return_value = mock_local
 
-    res = test_module._pkce_authenticate(None)
-    assert res == "mock-token"
+    res = test_module._pkce_authenticate(ENV)
+    assert res == mock_resp
 
     mock_server.side_effect = exception.AuthFlowError()
     with pytest.raises(exception.ClientError, match="Authentication process failed."):
-        test_module._pkce_authenticate(None)
+        test_module._pkce_authenticate(ENV)
 
     mock_server.side_effect = exception.ConfigError()
     with pytest.raises(
         exception.ClientError, match="There is a mistake with configuration settings."
     ):
-        test_module._pkce_authenticate(None)
+        test_module._pkce_authenticate(ENV)
 
     mock_server.side_effect = exception.LocalServerError()
     with pytest.raises(exception.ClientError, match="Local server failed to authenticate."):
-        test_module._pkce_authenticate(None)
+        test_module._pkce_authenticate(ENV)
 
 
 @patch("obi_auth.client.daf_authenticate")
 def test_daf_authenticate(auth_method, httpx_mock):
     auth_method.side_effect = exception.AuthFlowError()
     with pytest.raises(exception.ClientError, match="Authentication process failed."):
-        test_module._daf_authenticate(None)
+        test_module._daf_authenticate(ENV)
 
 
 def test_get_token_info():

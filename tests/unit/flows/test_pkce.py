@@ -22,14 +22,15 @@ def test_build_auth_url():
 
 
 def test_exchange_code_for_token(httpx_mock):
-    httpx_mock.add_response(method="POST", json={"access_token": "mock-token"})
+    mock_resp = {"access_token": "mock-token"}
+    httpx_mock.add_response(method="POST", json=mock_resp)
     res = test_module._exchange_code_for_token(
         code="mock-code",
         redirect_uri="mock-uri",
         code_verifier="mock-verifier",
         override_env=None,
     )
-    assert res == "mock-token"
+    assert res == mock_resp
 
 
 @patch("obi_auth.flows.pkce.webbrowser")

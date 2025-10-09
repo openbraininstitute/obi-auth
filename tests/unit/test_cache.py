@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import jwt
 import pytest
@@ -11,17 +11,9 @@ CIPHER = Fernet(key=derive_fernet_key())
 
 
 @pytest.fixture(scope="module")
-def issued_at():
-    return test_module._now()
-
-
-@pytest.fixture(scope="module")
-def expires_at(issued_at):
-    return issued_at + 3600
-
-
-@pytest.fixture(scope="module")
-def token_decoded(issued_at, expires_at):
+def token_decoded():
+    issued_at = test_module._now()
+    expires_at = issued_at + 3600
     return {
         "exp": expires_at,
         "iat": issued_at,
@@ -30,14 +22,22 @@ def token_decoded(issued_at, expires_at):
 
 @pytest.fixture(scope="module")
 def token(token_decoded):
-    return jwt.encode(token_decoded, key=None, algorithm="none")
+    token = jwt.encode(token_decoded, key=None, algorithm="none")
+    return {
+        "access_token": token,
+        "refresh_token": token,
+    }
 
 
 @pytest.fixture
 def token_expired(token_decoded):
     data = token_decoded.copy()
     data["exp"] = test_module._now() - 1
-    return jwt.encode(data, key=None, algorithm="none")
+    token = jwt.encode(data, key=None, algorithm="none")
+    return {
+        "access_token": token,
+        "refresh_token": token,
+    }
 
 
 def test_token_cache(token):
@@ -61,6 +61,15 @@ def test_token_cache(token):
     res = cache.get(storage)
     assert res == token
 
+    with patch("obi_auth.cache._get_access_token") as mock:
+        mock.return_value = token  # is not a timed out token
+        res = cache.get(storage)
+        assert res == token
+
+        mock.return_value = None  # neither access or refresh token is valid
+        res = cache.get(storage)
+        assert res is None
+
 
 def test_token_cache__expired(token_expired):
     storage = Mock()
@@ -75,3 +84,27 @@ def test_token_cache__expired(token_expired):
     res = cache.get(storage)
     assert res is None
     storage.clear.assert_called_once()
+
+
+def test__get_access_token(httpx_mock, token, token_expired):
+    res = test_module._get_access_token(token)
+    assert res is not None
+    assert "access_token" in res
+    assert "refresh_token" in res
+
+    token_expired_access_ok_refresh = {
+        "access_token": token_expired["access_token"],
+        "refresh_token": token["refresh_token"],
+    }
+    mock_resp = {"access_token": "new_access_token"}
+    httpx_mock.add_response(method="POST", json=mock_resp)
+    res = test_module._get_access_token(token_expired_access_ok_refresh)
+    assert res == mock_resp
+
+    res = test_module._get_access_token(token_expired)
+    assert res is None
+
+    httpx_mock.reset()
+    httpx_mock.add_response(status_code=500)
+    res = test_module._get_access_token(token_expired_access_ok_refresh)
+    assert res is None

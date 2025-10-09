@@ -67,7 +67,7 @@ def _exchange_code_for_token(
         code_verifier=code_verifier,
         override_env=override_env,
     )
-    return response.json()["access_token"]
+    return response.json()
 
 
 def pkce_authenticate(
@@ -76,5 +76,5 @@ def pkce_authenticate(
     """Get access token using the PCKE authentication flow."""
     code_verifier, code_challenge = _generate_pkce_pair()
     code = _authorize(server, code_challenge, environment)
-    access_token = _exchange_code_for_token(code, server.redirect_uri, code_verifier, environment)
-    return access_token
+    token = _exchange_code_for_token(code, server.redirect_uri, code_verifier, environment)
+    return token

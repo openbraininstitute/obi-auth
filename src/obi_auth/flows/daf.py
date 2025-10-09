@@ -59,5 +59,4 @@ def _get_device_code_token(
     if response.status_code == 400 and response.json()["error"] == "authorization_pending":
         return None
     response.raise_for_status()
-    data = response.json()
-    return data["access_token"]
+    return response.json()
