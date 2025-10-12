@@ -117,8 +117,7 @@ def _display_notebook_auth_prompt(device_info: AuthDeviceInfo) -> None:
         Console().print(auth_text)
 
     except Exception as e:
-        # Fallback to simple text output if Rich fails
-        L.warning(f"Rich panel failed, using fallback: {e}")
+        L.warning(f"Rich is not supported, using fallback: {e}")
         _display_terminal_auth_prompt(device_info)
 
 
