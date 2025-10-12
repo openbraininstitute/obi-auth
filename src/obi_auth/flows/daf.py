@@ -40,7 +40,12 @@ def daf_authenticate(*, environment: DeploymentEnvironment) -> str:
     # Display user-friendly authentication prompt
     _display_auth_prompt(device_info)
 
-    return _poll_device_code_token_with_progress(device_info, environment)
+    if token := _poll_device_code_token(device_info, environment):
+        print("\r   ✓ Authentication completed successfully!", flush=True)
+        return token
+
+    print("\r   ✗ Authentication failed - timeout reached", flush=True)
+    raise AuthFlowError("Polling using device code reached max retries.")
 
 
 def _get_device_url_code(
@@ -58,12 +63,14 @@ def _get_device_url_code(
     return AuthDeviceInfo.model_validate(response.json())
 
 
-def _poll_device_code_token(device_info: AuthDeviceInfo, environment: DeploymentEnvironment) -> str:
+def _poll_device_code_token(
+    device_info: AuthDeviceInfo, environment: DeploymentEnvironment
+) -> str | None:
     for _ in range(device_info.max_retries):
         if token := _get_device_code_token(device_info, environment):
             return token
         sleep(device_info.interval)
-    raise AuthFlowError("Polling using device code reached max retries.")
+    return None
 
 
 def _get_device_code_token(
@@ -130,31 +137,3 @@ def _display_terminal_auth_prompt(device_info: AuthDeviceInfo) -> None:
 
     print(AUTHENTICATION_MESSAGE_DATA["url"])
     print(f"   {device_info.verification_uri_complete}")
-
-
-def _poll_device_code_token_with_progress(
-    device_info: AuthDeviceInfo, environment: DeploymentEnvironment
-) -> str:
-    """Poll for device code token with progress indication."""
-    max_attempts = device_info.max_retries
-
-    is_notebook = is_running_in_notebook()
-    L.debug(f"Progress polling - notebook detection: {is_notebook}")
-
-    return _poll_with_terminal_progress(device_info, environment, max_attempts)
-
-
-def _poll_with_terminal_progress(
-    device_info: AuthDeviceInfo, environment: DeploymentEnvironment, max_attempts: int
-) -> str:
-    """Poll with simple terminal progress indication."""
-    for _ in range(max_attempts):
-        if token := _get_device_code_token(device_info, environment):
-            print("\r   ✓ Authentication completed successfully!", flush=True)
-            return token
-
-        sleep(device_info.interval)
-
-    # If we get here, authentication failed
-    print("\r   ✗ Authentication failed - timeout reached", flush=True)
-    raise AuthFlowError("Polling using device code reached max retries.")
