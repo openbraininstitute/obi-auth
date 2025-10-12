@@ -51,13 +51,22 @@ def test_get_keycloak_auth_endpoint(settings):
 
 def test_get_keycloak_device_auth_endpoint(settings):
     res = settings.get_keycloak_device_auth_endpoint()
-    assert res == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+    assert (
+        res
+        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+    )
 
     res = settings.get_keycloak_device_auth_endpoint(override_env="staging")
-    assert res == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+    assert (
+        res
+        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+    )
 
     res = settings.get_keycloak_device_auth_endpoint(override_env="production")
-    assert res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+    assert (
+        res
+        == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+    )
 
 
 def test_get_keycloak_user_info_endpoint(settings):

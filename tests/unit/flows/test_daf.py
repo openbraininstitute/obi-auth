@@ -25,7 +25,9 @@ def device_info():
 @patch("obi_auth.flows.daf._display_auth_prompt")
 @patch("obi_auth.flows.daf._get_device_url_code")
 @patch("builtins.print")
-def test_daf_authenticate_success(mock_print, mock_get_device_url, mock_display_prompt, mock_poll, device_info):
+def test_daf_authenticate_success(
+    mock_print, mock_get_device_url, mock_display_prompt, mock_poll, device_info
+):
     """Test daf_authenticate returns token on successful authentication."""
     mock_get_device_url.return_value = device_info
     mock_poll.return_value = "test_token"
@@ -42,7 +44,9 @@ def test_daf_authenticate_success(mock_print, mock_get_device_url, mock_display_
 @patch("obi_auth.flows.daf._display_auth_prompt")
 @patch("obi_auth.flows.daf._get_device_url_code")
 @patch("builtins.print")
-def test_daf_authenticate_failure(mock_print, mock_get_device_url, mock_display_prompt, mock_poll, device_info):
+def test_daf_authenticate_failure(
+    mock_print, mock_get_device_url, mock_display_prompt, mock_poll, device_info
+):
     """Test daf_authenticate raises error on authentication failure."""
     mock_get_device_url.return_value = device_info
     mock_poll.return_value = None
@@ -159,9 +163,9 @@ def test_get_device_url_code(mock_post, device_info):
     """Test _get_device_url_code function."""
     mock_response = mock_post.return_value
     mock_response.json.return_value = device_info.model_dump(mode="json")
-    
+
     result = test_module._get_device_url_code(environment=DeploymentEnvironment.staging)
-    
+
     assert result == device_info
     mock_post.assert_called_once()
 
@@ -170,7 +174,7 @@ def test_get_device_url_code(mock_post, device_info):
 def test_display_terminal_auth_prompt(mock_print, device_info):
     """Test _display_terminal_auth_prompt function."""
     test_module._display_terminal_auth_prompt(device_info)
-    
+
     # Verify print was called for each part of the message
     # title + 3 steps + url + verification_uri_complete = 6 calls
     assert mock_print.call_count == 6
