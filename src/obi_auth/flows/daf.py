@@ -110,7 +110,7 @@ def _display_notebook_auth_prompt(device_info: AuthDeviceInfo) -> None:
         from rich.text import Text
 
         auth_text = Text()
-        auth_text.append(AUTHENTICATION_MESSAGE_DATA["title"], style="bold blue")
+        auth_text.append(AUTHENTICATION_MESSAGE_DATA["title"], style="bold deep_sky_blue4")
 
         for step in AUTHENTICATION_MESSAGE_DATA["steps"]:
             auth_text.append(step, style="white")
@@ -118,7 +118,7 @@ def _display_notebook_auth_prompt(device_info: AuthDeviceInfo) -> None:
         auth_text.append(AUTHENTICATION_MESSAGE_DATA["url"], style="dim")
 
         verification_url = device_info.verification_uri_complete
-        link_style = Style(color="blue", underline=True, link=verification_url)
+        link_style = Style(color="deep_sky_blue4", underline=True, link=verification_url)
         auth_text.append(f"{verification_url}", style=link_style)
 
         Console().print(auth_text)
