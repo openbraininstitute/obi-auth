@@ -13,9 +13,21 @@ obi-auth is a library for retrieving Keycloak access tokens interactively. It he
 
 ## Installation
 
+### Basic Installation
+
 ```sh
 pip install obi-auth
 ```
+
+### Notebook Support
+
+For enhanced Jupyter notebook support with Rich display integration:
+
+```sh
+pip install obi-auth[notebook]
+```
+
+This installs `rich` which provides better rendering in Jupyter notebooks.
 
 ## Examples
 
