@@ -9,7 +9,7 @@ from obi_auth.cache import TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
 from obi_auth.flows.daf import daf_authenticate
-from obi_auth.flows.persistent import persistent_token_authenticate
+from obi_auth.flows.persistent_token import persistent_token_authenticate
 from obi_auth.flows.pkce import pkce_authenticate
 from obi_auth.request import user_info
 from obi_auth.server import AuthServer

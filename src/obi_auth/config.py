@@ -81,7 +81,7 @@ class Settings(BaseSettings):
             case _:
                 raise ConfigError(f"Unknown deployment environment {env}")
 
-    def get_auth_manager_token_endpoint(
+    def get_auth_manager_access_token_endpoint(
         self, override_env: DeploymentEnvironment | None = None
     ) -> str:
         """Return auth-manager token endpoint."""

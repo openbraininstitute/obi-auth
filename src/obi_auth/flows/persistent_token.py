@@ -17,7 +17,7 @@ def persistent_token_authenticate(
     """Get access token using a persistent token id."""
     data = (
         httpx.post(
-            url=settings.get_auth_manager_token_endpoint(override_env=environment),
+            url=settings.get_auth_manager_access_token_endpoint(override_env=environment),
             headers={"id": persistent_token_id},
         )
         .raise_for_status()

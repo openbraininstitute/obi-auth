@@ -16,7 +16,7 @@ def test_get_token(mock_cache, mock_method):
 
     mock_cache.get.return_value = None
 
-    mock_method.return_value = lambda x: "mock-token"
+    mock_method.return_value = lambda *args, **kwargs: "mock-token"
 
     assert test_module.get_token() == "mock-token"
 
@@ -27,6 +27,9 @@ def test_get_auth_method():
 
     res = test_module._get_auth_method(AuthMode.daf)
     assert res is test_module._daf_authenticate
+
+    res = test_module._get_auth_method(AuthMode.persistent_token)
+    assert res is test_module._persistent_token_authenticate
 
 
 @patch("obi_auth.flows.pkce.webbrowser")
@@ -39,29 +42,29 @@ def test_pkce_authenticate(mock_server, mock_web, httpx_mock):
     mock_local.wait_for_code.return_value = "mock-code"
     mock_server.run.return_value.__enter__.return_value = mock_local
 
-    res = test_module._pkce_authenticate(None)
+    res = test_module._pkce_authenticate(environment=None)
     assert res == "mock-token"
 
     mock_server.side_effect = exception.AuthFlowError()
     with pytest.raises(exception.ClientError, match="Authentication process failed."):
-        test_module._pkce_authenticate(None)
+        test_module._pkce_authenticate(environment=None)
 
     mock_server.side_effect = exception.ConfigError()
     with pytest.raises(
         exception.ClientError, match="There is a mistake with configuration settings."
     ):
-        test_module._pkce_authenticate(None)
+        test_module._pkce_authenticate(environment=None)
 
     mock_server.side_effect = exception.LocalServerError()
     with pytest.raises(exception.ClientError, match="Local server failed to authenticate."):
-        test_module._pkce_authenticate(None)
+        test_module._pkce_authenticate(environment=None)
 
 
 @patch("obi_auth.client.daf_authenticate")
 def test_daf_authenticate(auth_method, httpx_mock):
     auth_method.side_effect = exception.AuthFlowError()
     with pytest.raises(exception.ClientError, match="Authentication process failed."):
-        test_module._daf_authenticate(None)
+        test_module._daf_authenticate(environment=None)
 
 
 def test_get_token_info():
