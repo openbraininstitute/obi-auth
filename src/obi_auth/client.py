@@ -9,6 +9,7 @@ from obi_auth.cache import TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
 from obi_auth.flows.daf import daf_authenticate
+from obi_auth.flows.persistent import persistent_token_authenticate
 from obi_auth.flows.pkce import pkce_authenticate
 from obi_auth.request import user_info
 from obi_auth.server import AuthServer
@@ -25,6 +26,7 @@ def get_token(
     *,
     environment: DeploymentEnvironment = DeploymentEnvironment.staging,
     auth_mode: AuthMode = AuthMode.pkce,
+    **auth_mode_kwargs,
 ) -> str | None:
     """Get token."""
     L.debug("Using %s as the config dir", settings.config_dir)
@@ -36,7 +38,7 @@ def get_token(
 
     auth_method = _get_auth_method(auth_mode)
 
-    token = auth_method(environment)
+    token = auth_method(environment=environment, **auth_mode_kwargs)
 
     _TOKEN_CACHE.set(token, storage)
 
@@ -47,10 +49,11 @@ def _get_auth_method(auth_mode: AuthMode) -> Callable:
     return {
         AuthMode.pkce: _pkce_authenticate,
         AuthMode.daf: _daf_authenticate,
+        AuthMode.persistent_token: _persistent_token_authenticate,
     }[auth_mode]
 
 
-def _pkce_authenticate(environment: DeploymentEnvironment) -> str:
+def _pkce_authenticate(*, environment: DeploymentEnvironment) -> str:
     try:
         with AuthServer().run() as local_server:
             return pkce_authenticate(server=local_server, environment=environment)
@@ -62,9 +65,18 @@ def _pkce_authenticate(environment: DeploymentEnvironment) -> str:
         raise ClientError("There is a mistake with configuration settings.") from e
 
 
-def _daf_authenticate(environment: DeploymentEnvironment) -> str:
+def _daf_authenticate(*, environment: DeploymentEnvironment) -> str:
     try:
         return daf_authenticate(environment=environment)
+    except AuthFlowError as e:
+        raise ClientError("Authentication process failed.") from e
+
+
+def _persistent_token_authenticate(
+    *, environment: DeploymentEnvironment, persistent_token_id: str
+) -> str:
+    try:
+        return persistent_token_authenticate(environment=environment)
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
 

@@ -71,5 +71,22 @@ class Settings(BaseSettings):
         base_url = self.get_keycloak_url(override_env=override_env)
         return f"{base_url}/protocol/openid-connect/userinfo"
 
+    def get_auth_manager_url(self, override_env: DeploymentEnvironment | None = None) -> str:
+        """Return auth manager url."""
+        match env := override_env or self.KEYCLOAK_ENV:
+            case DeploymentEnvironment.staging:
+                return "https://staging.openbraininstitute.org/api/auth-manager/v1"
+            case DeploymentEnvironment.production:
+                return "https://www.openbraininstitute.org/api/auth-manager/v1"
+            case _:
+                raise ConfigError(f"Unknown deployment environment {env}")
+
+    def get_auth_manager_token_endpoint(
+        self, override_env: DeploymentEnvironment | None = None
+    ) -> str:
+        """Return auth-manager token endpoint."""
+        base_url = self.get_auth_manager_url(override_env=override_env)
+        return f"{base_url}/v1/access-token"
+
 
 settings = Settings()

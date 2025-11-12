@@ -30,6 +30,7 @@ class AuthMode(StrEnum):
 
     pkce = auto()
     daf = auto()
+    persistent_token = auto()
 
 
 class AuthDeviceInfo(BaseModel):
