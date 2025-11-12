@@ -2,6 +2,9 @@ import pytest
 
 from obi_auth import exception
 
+PROD_OBI_URL = "https://www.openbraininstitute.org"
+STAGING_OBI_URL = "https://staging.openbraininstitute.org"
+
 
 def test_get_keycloak_url(settings):
     res = settings.get_keycloak_url()
@@ -86,3 +89,17 @@ def test_get_keycloak_user_info_endpoint(settings):
     assert (
         res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
     )
+
+
+def test_get_auth_manager_url(settings):
+    res = settings.get_auth_manager_url()
+    assert res == f"{STAGING_OBI_URL}/api/auth-manager/v1"
+
+    res = settings.get_auth_manager_url(override_env="staging")
+    assert res == f"{STAGING_OBI_URL}/api/auth-manager/v1"
+
+    res = settings.get_auth_manager_url(override_env="production")
+    assert res == f"{PROD_OBI_URL}/api/auth-manager/v1"
+
+    with pytest.raises(exception.ConfigError, match="Unknown deployment environment foo"):
+        settings.get_auth_manager_url(override_env="foo")

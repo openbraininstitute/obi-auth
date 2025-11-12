@@ -67,6 +67,13 @@ def test_daf_authenticate(auth_method, httpx_mock):
         test_module._daf_authenticate(environment=None)
 
 
+@patch("obi_auth.client.persistent_token_authenticate")
+def test_persistent_token_authenticate(auth_method, httpx_mock):
+    auth_method.side_effect = exception.AuthFlowError()
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module._persistent_token_authenticate(environment=None, persistent_token_id=None)
+
+
 def test_get_token_info():
     payload = {"foo": "bar", "bar": "foo"}
 

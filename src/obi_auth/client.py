@@ -1,7 +1,6 @@
 """This module provides a client for the obi_auth service."""
 
 import logging
-from collections.abc import Callable
 
 import jwt
 
@@ -45,7 +44,7 @@ def get_token(
     return token
 
 
-def _get_auth_method(auth_mode: AuthMode) -> Callable:
+def _get_auth_method(auth_mode: AuthMode):
     return {
         AuthMode.pkce: _pkce_authenticate,
         AuthMode.daf: _daf_authenticate,
@@ -76,7 +75,9 @@ def _persistent_token_authenticate(
     *, environment: DeploymentEnvironment, persistent_token_id: str
 ) -> str:
     try:
-        return persistent_token_authenticate(environment=environment)
+        return persistent_token_authenticate(
+            environment=environment, persistent_token_id=persistent_token_id
+        )
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
 
