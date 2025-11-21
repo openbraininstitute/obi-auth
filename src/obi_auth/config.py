@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     ) -> str:
         """Return auth-manager token endpoint."""
         base_url = self.get_auth_manager_url(override_env=override_env)
-        return f"{base_url}/v1/access-token"
+        return f"{base_url}/access-token"
 
 
 settings = Settings()
