@@ -15,11 +15,14 @@ ENV_TO_FILE_NAME = {
 class Storage:
     """Storage class."""
 
-    def __init__(self, config_dir: Path, environment: DeploymentEnvironment) -> None:
+    def __init__(
+        self, config_dir: Path, environment: DeploymentEnvironment, key: str | None = None
+    ) -> None:
         """Initialize storage file from config dir and environment flag."""
         config_dir.mkdir(exist_ok=True, parents=True)
         config_dir.chmod(mode=DIRECTORY_MODE)
-        self._file_path = config_dir / ENV_TO_FILE_NAME[environment]
+        filename = f"token_{environment}_{key}.json" if key else f"token_{environment}.json"
+        self._file_path = config_dir / filename
 
     def write(self, data: TokenInfo):
         """Write token info to file."""

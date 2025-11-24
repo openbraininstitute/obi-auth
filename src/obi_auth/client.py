@@ -28,15 +28,22 @@ def get_token(
     **auth_mode_kwargs,
 ) -> str | None:
     """Get token."""
+    auth_mode = AuthMode(auth_mode)
+
     L.debug("Using %s as the config dir", settings.config_dir)
-    storage = Storage(config_dir=settings.config_dir, environment=environment)
+    storage = Storage(
+        config_dir=settings.config_dir,
+        environment=environment,
+        key=auth_mode_kwargs["persistent_token_id"]
+        if auth_mode == AuthMode.persistent_token
+        else None,
+    )
 
     if token := _TOKEN_CACHE.get(storage):
         L.debug("Using cached token")
         return token
 
     auth_method = _get_auth_method(auth_mode)
-
     token = auth_method(environment=environment, **auth_mode_kwargs)
 
     _TOKEN_CACHE.set(token, storage)
