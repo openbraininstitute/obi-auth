@@ -4,7 +4,6 @@ import stat
 import pytest
 
 from obi_auth import storage as test_module
-from obi_auth.storage import ENV_TO_FILE_NAME
 from obi_auth.typedef import DeploymentEnvironment, TokenInfo
 
 PROD = DeploymentEnvironment.production
@@ -35,6 +34,12 @@ def test_storage_init__no_dir(config_dir):
     # check that directory created with correct permissions
     assert get_unix_permissions(config_dir) == 0o700
 
+    test_module.Storage(config_dir, STAGING, "key")
+    assert config_dir.exists()
+
+    # check that directory created with correct permissions
+    assert get_unix_permissions(config_dir) == 0o700
+
 
 def test_storage_init__existing_dir(config_dir):
     config_dir.mkdir()
@@ -46,7 +51,15 @@ def test_storage_init__existing_dir(config_dir):
 
     assert get_unix_permissions(config_dir) == 0o700
 
-    expected_file = config_dir / ENV_TO_FILE_NAME[STAGING]
+    expected_file = config_dir / "token_staging.json"
+    assert storage._file_path == expected_file
+
+    storage = test_module.Storage(config_dir, "staging", "key")
+    assert config_dir.exists()
+
+    assert get_unix_permissions(config_dir) == 0o700
+
+    expected_file = config_dir / "token_staging_key.json"
     assert storage._file_path == expected_file
 
     # not written yet
