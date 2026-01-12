@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     def get_keycloak_url(self, override_env: DeploymentEnvironment | None = None):
         """Return keycloak url."""
-        url = self._get_domain_url(override_env)
+        url = self._get_domain_url(override_env or self.KEYCLOAK_ENV)
         return f"{url}/auth/realms/{self.KEYCLOAK_REALM}"
 
     def get_keycloak_token_endpoint(self, override_env: DeploymentEnvironment | None = None) -> str:
@@ -79,7 +79,7 @@ class Settings(BaseSettings):
 
     def get_auth_manager_url(self, override_env: DeploymentEnvironment | None = None) -> str:
         """Return auth manager url."""
-        url = self._get_domain_url(override_env)
+        url = self._get_domain_url(override_env or self.KEYCLOAK_ENV)
         return f"{url}/api/auth-manager/v1"
 
     def get_auth_manager_access_token_endpoint(
