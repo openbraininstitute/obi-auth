@@ -3,15 +3,15 @@ import pytest
 from obi_auth import exception
 
 PROD_OBI_URL = "https://www.openbraininstitute.org"
-STAGING_OBI_URL = "https://staging.openbraininstitute.org"
+STAGING_OBI_URL = "https://staging.cell-a.openbraininstitute.org"
 
 
 def test_get_keycloak_url(settings):
     res = settings.get_keycloak_url()
-    assert res == "https://staging.openbraininstitute.org/auth/realms/SBO"
+    assert res == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO"
 
     res = settings.get_keycloak_url(override_env="staging")
-    assert res == "https://staging.openbraininstitute.org/auth/realms/SBO"
+    assert res == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO"
 
     res = settings.get_keycloak_url(override_env="production")
     assert res == "https://www.openbraininstitute.org/auth/realms/SBO"
@@ -24,13 +24,13 @@ def test_get_keycloak_token_endpoint(settings):
     res = settings.get_keycloak_token_endpoint()
     assert (
         res
-        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
     )
 
     res = settings.get_keycloak_token_endpoint(override_env="staging")
     assert (
         res
-        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
     )
 
     res = settings.get_keycloak_token_endpoint(override_env="production")
@@ -40,12 +40,14 @@ def test_get_keycloak_token_endpoint(settings):
 def test_get_keycloak_auth_endpoint(settings):
     res = settings.get_keycloak_auth_endpoint()
     assert (
-        res == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
+        res
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
     )
 
     res = settings.get_keycloak_auth_endpoint(override_env="staging")
     assert (
-        res == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
+        res
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
     )
 
     res = settings.get_keycloak_auth_endpoint(override_env="production")
@@ -56,13 +58,13 @@ def test_get_keycloak_device_auth_endpoint(settings):
     res = settings.get_keycloak_device_auth_endpoint()
     assert (
         res
-        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
     )
 
     res = settings.get_keycloak_device_auth_endpoint(override_env="staging")
     assert (
         res
-        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
     )
 
     res = settings.get_keycloak_device_auth_endpoint(override_env="production")
@@ -76,13 +78,13 @@ def test_get_keycloak_user_info_endpoint(settings):
     res = settings.get_keycloak_user_info_endpoint()
     assert (
         res
-        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
     )
 
     res = settings.get_keycloak_user_info_endpoint(override_env="staging")
     assert (
         res
-        == "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
+        == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
     )
 
     res = settings.get_keycloak_user_info_endpoint(override_env="production")

@@ -38,14 +38,20 @@ class Settings(BaseSettings):
 
     LOCAL_SERVER_TIMEOUT: int = 60
 
-    def get_keycloak_url(self, override_env: DeploymentEnvironment | None = None):
-        """Return keycloak url."""
+    def _get_domain_url(self, override_env: DeploymentEnvironment) -> str:
+        """Return domain url based on environment."""
         match env := override_env or self.KEYCLOAK_ENV:
             case DeploymentEnvironment.staging:
-                return f"https://staging.openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
+                return "https://staging.cell-a.openbraininstitute.org"
             case DeploymentEnvironment.production:
-                return f"https://www.openbraininstitute.org/auth/realms/{self.KEYCLOAK_REALM}"
-        raise ConfigError(f"Unknown deployment environment {env}")
+                return "https://www.openbraininstitute.org"
+            case _:
+                raise ConfigError(f"Unknown deployment environment {env}")
+
+    def get_keycloak_url(self, override_env: DeploymentEnvironment | None = None):
+        """Return keycloak url."""
+        url = self._get_domain_url(override_env)
+        return f"{url}/auth/realms/{self.KEYCLOAK_REALM}"
 
     def get_keycloak_token_endpoint(self, override_env: DeploymentEnvironment | None = None) -> str:
         """Return keycloak token endpoint."""
@@ -73,13 +79,8 @@ class Settings(BaseSettings):
 
     def get_auth_manager_url(self, override_env: DeploymentEnvironment | None = None) -> str:
         """Return auth manager url."""
-        match env := override_env or self.KEYCLOAK_ENV:
-            case DeploymentEnvironment.staging:
-                return "https://staging.openbraininstitute.org/api/auth-manager/v1"
-            case DeploymentEnvironment.production:
-                return "https://www.openbraininstitute.org/api/auth-manager/v1"
-            case _:
-                raise ConfigError(f"Unknown deployment environment {env}")
+        url = self._get_domain_url(override_env)
+        return f"{url}/api/auth-manager/v1"
 
     def get_auth_manager_access_token_endpoint(
         self, override_env: DeploymentEnvironment | None = None
