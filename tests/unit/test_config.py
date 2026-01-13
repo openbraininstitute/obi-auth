@@ -2,7 +2,7 @@ import pytest
 
 from obi_auth import exception
 
-PROD_OBI_URL = "https://cell-a.openbraininstitute.org"
+PROD_OBI_URL = "https://www.openbraininstitute.org"
 STAGING_OBI_URL = "https://staging.cell-a.openbraininstitute.org"
 
 
@@ -14,7 +14,7 @@ def test_get_keycloak_url(settings):
     assert res == "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO"
 
     res = settings.get_keycloak_url(override_env="production")
-    assert res == "https://cell-a.openbraininstitute.org/auth/realms/SBO"
+    assert res == "https://www.openbraininstitute.org/auth/realms/SBO"
 
     with pytest.raises(exception.ConfigError, match="Unknown deployment environment foo"):
         settings.get_keycloak_url(override_env="foo")
@@ -34,9 +34,7 @@ def test_get_keycloak_token_endpoint(settings):
     )
 
     res = settings.get_keycloak_token_endpoint(override_env="production")
-    assert (
-        res == "https://cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
-    )
+    assert res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
 
 
 def test_get_keycloak_auth_endpoint(settings):
@@ -53,9 +51,7 @@ def test_get_keycloak_auth_endpoint(settings):
     )
 
     res = settings.get_keycloak_auth_endpoint(override_env="production")
-    assert (
-        res == "https://cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
-    )
+    assert res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
 
 
 def test_get_keycloak_device_auth_endpoint(settings):
@@ -74,7 +70,7 @@ def test_get_keycloak_device_auth_endpoint(settings):
     res = settings.get_keycloak_device_auth_endpoint(override_env="production")
     assert (
         res
-        == "https://cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
+        == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth/device"
     )
 
 
@@ -93,8 +89,7 @@ def test_get_keycloak_user_info_endpoint(settings):
 
     res = settings.get_keycloak_user_info_endpoint(override_env="production")
     assert (
-        res
-        == "https://cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
+        res == "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/userinfo"
     )
 
 
