@@ -47,3 +47,10 @@ class AuthDeviceInfo(BaseModel):
     def max_retries(self) -> int:
         """Return max retries from expiration time and polling interval."""
         return self.expires_in // self.interval
+
+
+class PersistenceMode(StrEnum):
+    """Refresh token persistence model."""
+
+    refresh = auto()
+    offline = auto()
