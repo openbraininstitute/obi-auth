@@ -10,7 +10,7 @@ def test_build_auth_url():
         override_env=None,
     )
     assert res == (
-        "https://staging.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
+        "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/auth"
         "?response_type=code"
         "&client_id=obi-entitysdk-auth"
         "&redirect_uri=bar"
