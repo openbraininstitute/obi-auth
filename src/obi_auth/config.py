@@ -44,7 +44,7 @@ class Settings(BaseSettings):
             case DeploymentEnvironment.staging:
                 return "https://staging.cell-a.openbraininstitute.org"
             case DeploymentEnvironment.production:
-                return "https://cell-a.openbraininstitute.org"
+                return "https://www.openbraininstitute.org"
             case _:
                 raise ConfigError(f"Unknown deployment environment {env}")
 
