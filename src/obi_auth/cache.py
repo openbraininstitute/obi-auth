@@ -14,8 +14,6 @@ from obi_auth.util import derive_fernet_key
 class TokenCache:
     """Token cache."""
 
-    token_info: TokenInfo | None = None
-
     def __init__(self):
         """Initialize the token cache."""
         self._cipher = Fernet(key=derive_fernet_key())
