@@ -1,6 +1,7 @@
 """This module provides a client for the obi_auth service."""
 
 import logging
+from collections.abc import Callable
 
 import jwt
 
@@ -26,7 +27,7 @@ def get_token(
     environment: DeploymentEnvironment = DeploymentEnvironment.staging,
     auth_mode: AuthMode = AuthMode.pkce,
     **auth_mode_kwargs,
-) -> str | None:
+) -> str:
     """Get token."""
     auth_mode = AuthMode(auth_mode)
 
@@ -51,12 +52,13 @@ def get_token(
     return token
 
 
-def _get_auth_method(auth_mode: AuthMode):
-    return {
+def _get_auth_method(auth_mode: AuthMode) -> Callable[..., str]:
+    methods: dict[AuthMode, Callable[..., str]] = {
         AuthMode.pkce: _pkce_authenticate,
         AuthMode.daf: _daf_authenticate,
         AuthMode.persistent_token: _persistent_token_authenticate,
-    }[auth_mode]
+    }
+    return methods[auth_mode]
 
 
 def _pkce_authenticate(*, environment: DeploymentEnvironment) -> str:
