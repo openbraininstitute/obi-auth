@@ -40,7 +40,9 @@ def test_get_token(mock_token, cli_runner):
     result = cli_runner.invoke(main, ["get-token"])
     assert result.exit_code == 0
     assert result.output == "foo\n"
-    mock_token.assert_called_with(environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce)
+    mock_token.assert_called_with(
+        environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce
+    )
 
     result = cli_runner.invoke(
         main, ["get-token", "-e", "production", "-m", "daf", "--show-decoded", "--show-user-info"]
@@ -162,12 +164,12 @@ def test_get_token_piped_to_decode_token_with_jq(tmp_path):
     decode_token_cmd = [obi_auth_cli, "decode-token"]
     jq_cmd = ["jq", "-r", ".sub"]
 
-    get_token = subprocess.Popen(get_token_cmd, stdout=subprocess.PIPE, text=True, env=env)
-    decode_token = subprocess.Popen(
+    get_token = subprocess.Popen(get_token_cmd, stdout=subprocess.PIPE, text=True, env=env)  # noqa: S603
+    decode_token = subprocess.Popen(  # noqa: S603
         decode_token_cmd, stdin=get_token.stdout, stdout=subprocess.PIPE, text=True, env=env
     )
     get_token.stdout.close()
-    jq = subprocess.Popen(jq_cmd, stdin=decode_token.stdout, stdout=subprocess.PIPE, text=True)
+    jq = subprocess.Popen(jq_cmd, stdin=decode_token.stdout, stdout=subprocess.PIPE, text=True)  # noqa: S603
     decode_token.stdout.close()
 
     stdout, stderr = jq.communicate()
