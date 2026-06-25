@@ -37,6 +37,59 @@ from obi_auth import get_token
 access_token = get_token(environment="staging")
 ```
 
+## CLI
+
+After installation, the `obi-auth` command is available. Run `obi-auth --help` for the full list of commands and options.
+
+### `get-token`
+
+Authenticate and print the access token to stdout. Output is a single token string, suitable for piping into other commands.
+
+```sh
+obi-auth get-token
+obi-auth get-token -e production -m daf
+obi-auth get-token --force-refresh
+```
+
+| Option | Description |
+| --- | --- |
+| `-e`, `--environment` | Target environment: `staging` (default) or `production` |
+| `-m`, `--auth-mode` | Authentication method: `pkce` (default) or `daf` |
+| `--force-refresh` | Clear the cached token and authenticate again |
+
+### `decode-token`
+
+Decode a JWT and print the payload as indented JSON. Pass the token as an argument or via stdin.
+
+```sh
+obi-auth decode-token eyJhbGciOi...
+obi-auth get-token | obi-auth decode-token
+obi-auth get-token | obi-auth decode-token | jq -r '.sub'
+```
+
+### `get-user-info`
+
+Authenticate, fetch user info from Keycloak, and print the result as indented JSON.
+
+```sh
+obi-auth get-user-info
+obi-auth get-user-info -e production -m daf
+obi-auth get-user-info --force-refresh
+obi-auth get-user-info | jq -r '.sub'
+```
+
+| Option | Description |
+| --- | --- |
+| `-e`, `--environment` | Target environment: `staging` (default) or `production` |
+| `-m`, `--auth-mode` | Authentication method: `pkce` (default) or `daf` |
+| `--force-refresh` | Clear the cached token and authenticate again |
+
+### Global options
+
+| Option | Description |
+| --- | --- |
+| `--log-level` | Logging level: `DEBUG`, `INFO`, `WARNING` (default), `ERROR`, `CRITICAL` |
+
 ## License
 
 Copyright (c) 2025 Open Brain Institute
