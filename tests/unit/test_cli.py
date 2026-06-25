@@ -34,14 +34,14 @@ def test_get_token(mock_token, cli_runner):
     assert result.exit_code == 0
     assert result.output == "foo\n"
     mock_token.assert_called_with(
-        environment=DeploymentEnvironment.production, auth_mode=AuthMode.daf
+        environment=DeploymentEnvironment.production, auth_mode=AuthMode.daf, force_refresh=False
     )
 
     result = cli_runner.invoke(main, ["get-token"])
     assert result.exit_code == 0
     assert result.output == "foo\n"
     mock_token.assert_called_with(
-        environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce
+        environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce, force_refresh=False
     )
 
     result = cli_runner.invoke(
@@ -49,6 +49,20 @@ def test_get_token(mock_token, cli_runner):
     )
     assert result.exit_code == 0
     assert result.output == "foo\n"
+
+
+@patch("obi_auth.get_token")
+def test_get_token_force_refresh(mock_token, cli_runner):
+    mock_token.return_value = "fresh-token"
+
+    result = cli_runner.invoke(
+        main, ["get-token", "-e", "production", "-m", "daf", "--force-refresh"]
+    )
+    assert result.exit_code == 0
+    assert result.output == "fresh-token\n"
+    mock_token.assert_called_with(
+        environment=DeploymentEnvironment.production, auth_mode=AuthMode.daf, force_refresh=True
+    )
 
 
 @patch("obi_auth.get_token_info")
@@ -106,7 +120,7 @@ def test_get_user_info(mock_token, mock_user_info, cli_runner):
     assert json.loads(result.output) == user_info
     assert result.output == json.dumps(user_info, indent=2) + "\n"
     mock_token.assert_called_once_with(
-        environment=DeploymentEnvironment.production, auth_mode=AuthMode.daf
+        environment=DeploymentEnvironment.production, auth_mode=AuthMode.daf, force_refresh=False
     )
     mock_user_info.assert_called_once_with(
         "access-token", environment=DeploymentEnvironment.production
@@ -125,11 +139,28 @@ def test_get_user_info_defaults(mock_token, mock_user_info, cli_runner):
     assert result.exit_code == 0
     assert json.loads(result.output) == user_info
     mock_token.assert_called_once_with(
-        environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce
+        environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce, force_refresh=False
     )
     mock_user_info.assert_called_once_with(
         "staging-token", environment=DeploymentEnvironment.staging
     )
+
+
+@patch("obi_auth.get_user_info")
+@patch("obi_auth.get_token")
+def test_get_user_info_force_refresh(mock_token, mock_user_info, cli_runner):
+    user_info = {"email": "test@example.com"}
+    mock_token.return_value = "fresh-token"
+    mock_user_info.return_value = user_info
+
+    result = cli_runner.invoke(main, ["get-user-info", "--force-refresh"])
+
+    assert result.exit_code == 0
+    assert json.loads(result.output) == user_info
+    mock_token.assert_called_once_with(
+        environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce, force_refresh=True
+    )
+    mock_user_info.assert_called_once_with("fresh-token", environment=DeploymentEnvironment.staging)
 
 
 @pytest.mark.skipif(shutil.which("jq") is None, reason="jq not installed")

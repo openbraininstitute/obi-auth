@@ -26,6 +26,7 @@ def get_token(
     *,
     environment: DeploymentEnvironment = DeploymentEnvironment.staging,
     auth_mode: AuthMode = AuthMode.pkce,
+    force_refresh: bool = False,
     **auth_mode_kwargs,
 ) -> str:
     """Get token."""
@@ -40,7 +41,10 @@ def get_token(
         else None,
     )
 
-    if token := _TOKEN_CACHE.get(storage):
+    if force_refresh:
+        L.debug("Forcing token refresh, clearing cached token")
+        storage.clear()
+    elif token := _TOKEN_CACHE.get(storage):
         L.debug("Using cached token")
         return token
 

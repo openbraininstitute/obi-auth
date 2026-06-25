@@ -35,11 +35,19 @@ def main(log_level):
 )
 @click.option("--show-decoded", help="Show decoded information", is_flag=True, default=False)
 @click.option("--show-user-info", help="Show user info information", is_flag=True, default=False)
-def get_token(environment, auth_mode, show_decoded, show_user_info):
+@click.option(
+    "--force-refresh",
+    help="Clear the cached token and authenticate again",
+    is_flag=True,
+    default=False,
+)
+def get_token(environment, auth_mode, show_decoded, show_user_info, force_refresh):
     """Authenticate, print the token to stdout."""
     environment = DeploymentEnvironment(environment)
 
-    access_token = obi_auth.get_token(environment=environment, auth_mode=AuthMode(auth_mode))
+    access_token = obi_auth.get_token(
+        environment=environment, auth_mode=AuthMode(auth_mode), force_refresh=force_refresh
+    )
     print(access_token)
 
 
@@ -65,8 +73,16 @@ def decode_token(access_token):
     type=click.Choice([mode.value for mode in AuthMode]),
 )
 @click.option("--environment", "-e", default="staging", help="The person to greet")
-def get_user_info(environment, auth_mode):
+@click.option(
+    "--force-refresh",
+    help="Clear the cached token and authenticate again",
+    is_flag=True,
+    default=False,
+)
+def get_user_info(environment, auth_mode, force_refresh):
     """Show user info information."""
     environment = DeploymentEnvironment(environment)
-    access_token = obi_auth.get_token(environment=environment, auth_mode=AuthMode(auth_mode))
+    access_token = obi_auth.get_token(
+        environment=environment, auth_mode=AuthMode(auth_mode), force_refresh=force_refresh
+    )
     print(json.dumps(obi_auth.get_user_info(access_token, environment=environment), indent=2))
