@@ -44,12 +44,6 @@ def test_get_token(mock_token, cli_runner):
         environment=DeploymentEnvironment.staging, auth_mode=AuthMode.pkce, force_refresh=False
     )
 
-    result = cli_runner.invoke(
-        main, ["get-token", "-e", "production", "-m", "daf", "--show-decoded", "--show-user-info"]
-    )
-    assert result.exit_code == 0
-    assert result.output == "foo\n"
-
 
 @patch("obi_auth.get_token")
 def test_get_token_force_refresh(mock_token, cli_runner):

@@ -33,15 +33,13 @@ def main(log_level):
     help="Authentication method",
     type=click.Choice([mode.value for mode in AuthMode]),
 )
-@click.option("--show-decoded", help="Show decoded information", is_flag=True, default=False)
-@click.option("--show-user-info", help="Show user info information", is_flag=True, default=False)
 @click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
     default=False,
 )
-def get_token(environment, auth_mode, show_decoded, show_user_info, force_refresh):
+def get_token(environment, auth_mode, force_refresh):
     """Authenticate, print the token to stdout."""
     environment = DeploymentEnvironment(environment)
 
