@@ -21,6 +21,21 @@ def test_get_token(mock_cache, mock_method):
     assert test_module.get_token() == "mock-token"
 
 
+@patch("obi_auth.client.Storage")
+@patch("obi_auth.client._get_auth_method")
+@patch("obi_auth.client._TOKEN_CACHE")
+def test_get_token_force_refresh(mock_cache, mock_method, mock_storage):
+    mock_cache.get.return_value = "cached-token"
+    mock_method.return_value = lambda *args, **kwargs: "fresh-token"
+
+    result = test_module.get_token(force_refresh=True)
+
+    assert result == "fresh-token"
+    mock_cache.get.assert_not_called()
+    mock_storage.return_value.clear.assert_called_once_with()
+    mock_cache.set.assert_called_once_with("fresh-token", mock_storage.return_value)
+
+
 def test_get_auth_method():
     res = test_module._get_auth_method(AuthMode.pkce)
     assert res is test_module._pkce_authenticate
