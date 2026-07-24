@@ -134,10 +134,6 @@ show_missing = true
 precision = 0
 fail_under = 50
 
-[tool.ty.rules]
-unresolved-import = "ignore"
-conflicting-declarations = "ignore"
-
 [tool.tox]
 requires = ["tox>=4.19"]
 env_list = [
