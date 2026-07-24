@@ -1,4 +1,3 @@
-#!/bin/env python3
 """CLI for obi-auth."""
 
 import json
@@ -19,19 +18,27 @@ from obi_auth.typedef import AuthMode, DeploymentEnvironment
     show_default=True,
     help="Logging level",
 )
-def main(log_level):
+def main(log_level: str):
     """CLI for obi-auth."""
     logging.basicConfig(level=log_level)
 
 
 @main.command()
-@click.option("--environment", "-e", default="staging", help="The person to greet")
+@click.option(
+    "--environment",
+    "-e",
+    type=click.Choice(DeploymentEnvironment),
+    default=DeploymentEnvironment.staging,
+    show_default=True,
+    help="Target environment",
+)
 @click.option(
     "--auth-mode",
     "-m",
-    default="pkce",
+    type=click.Choice(AuthMode),
+    default=AuthMode.pkce,
+    show_default=True,
     help="Authentication method",
-    type=click.Choice([mode.value for mode in AuthMode]),
 )
 @click.option(
     "--force-refresh",
@@ -39,19 +46,17 @@ def main(log_level):
     is_flag=True,
     default=False,
 )
-def get_token(environment, auth_mode, force_refresh):
+def get_token(environment: DeploymentEnvironment, auth_mode: AuthMode, force_refresh: bool):
     """Authenticate, print the token to stdout."""
-    environment = DeploymentEnvironment(environment)
-
     access_token = obi_auth.get_token(
-        environment=environment, auth_mode=AuthMode(auth_mode), force_refresh=force_refresh
+        environment=environment, auth_mode=auth_mode, force_refresh=force_refresh
     )
     print(access_token)
 
 
 @main.command()
 @click.argument("access_token", required=False)
-def decode_token(access_token):
+def decode_token(access_token: str | None):
     """Decode token from argument or stdin."""
     if not access_token:
         access_token = sys.stdin.read().strip()
@@ -64,23 +69,30 @@ def decode_token(access_token):
 
 @main.command()
 @click.option(
+    "--environment",
+    "-e",
+    type=click.Choice(DeploymentEnvironment),
+    default=DeploymentEnvironment.staging,
+    show_default=True,
+    help="Target environment",
+)
+@click.option(
     "--auth-mode",
     "-m",
-    default="pkce",
+    type=click.Choice(AuthMode),
+    default=AuthMode.pkce,
+    show_default=True,
     help="Authentication method",
-    type=click.Choice([mode.value for mode in AuthMode]),
 )
-@click.option("--environment", "-e", default="staging", help="The person to greet")
 @click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
     default=False,
 )
-def get_user_info(environment, auth_mode, force_refresh):
+def get_user_info(environment: DeploymentEnvironment, auth_mode: AuthMode, force_refresh: bool):
     """Show user info information."""
-    environment = DeploymentEnvironment(environment)
     access_token = obi_auth.get_token(
-        environment=environment, auth_mode=AuthMode(auth_mode), force_refresh=force_refresh
+        environment=environment, auth_mode=auth_mode, force_refresh=force_refresh
     )
     print(json.dumps(obi_auth.get_user_info(access_token, environment=environment), indent=2))
