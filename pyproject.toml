@@ -140,3 +140,56 @@ python-version = "3.11"
 [tool.ty.rules]
 unresolved-import = "ignore"
 conflicting-declarations = "ignore"
+
+[tool.tox]
+requires = ["tox>=4.19"]
+env_list = [
+    "lint",
+    "check-packaging",
+    "py311",
+    "py312",
+    "py313",
+]
+
+[tool.tox.env_run_base]
+extras = ["notebook"]
+deps = [
+    "pytest",
+    "pytest-cov",
+    "pytest-httpx",
+    "coverage[toml]",
+]
+commands = [
+    ["python", "-m", "pytest", { replace = "posargs", extend = true }],
+    ["python", "-m", "coverage", "xml"],
+    ["python", "-m", "coverage", "html"],
+]
+
+[tool.tox.env.lint]
+deps = [
+    "ruff",
+    "ty",
+]
+commands = [
+    ["python", "-m", "ruff", "format", "--check"],
+    ["python", "-m", "ruff", "check"],
+    ["python", "-m", "ty", "check", "src"],
+]
+
+[tool.tox.env.format]
+deps = ["ruff"]
+commands = [
+    ["python", "-m", "ruff", "format"],
+    ["python", "-m", "ruff", "check", "--fix"],
+]
+
+[tool.tox.env.check-packaging]
+skip_install = true
+deps = [
+    "build",
+    "twine",
+]
+commands = [
+    ["python", "-m", "build", "-o", "{env_tmp_dir}{/}dist"],
+    ["twine", "check", "{env_tmp_dir}{/}dist{/}*"],
+]
