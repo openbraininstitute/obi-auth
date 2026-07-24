@@ -44,7 +44,7 @@ def is_running_in_notebook() -> bool:
     try:
         # Check for IPython
         if "IPython" in sys.modules:
-            from IPython import get_ipython
+            from IPython import get_ipython  # ty: ignore[unresolved-import]
 
             ipython = get_ipython()
             if ipython is not None:

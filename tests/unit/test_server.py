@@ -44,3 +44,10 @@ def test_wait_for_code(running_server):
 
     res = running_server.wait_for_code()
     assert res == "mock-code"
+
+
+def test_wait_for_code_missing_code(server):
+    server.auth_state.event.set()
+
+    with pytest.raises(LocalServerError, match="Authorization code was not set"):
+        server.wait_for_code()
