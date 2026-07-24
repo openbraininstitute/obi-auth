@@ -134,9 +134,6 @@ show_missing = true
 precision = 0
 fail_under = 50
 
-[tool.ty.environment]
-python-version = "3.11"
-
 [tool.ty.rules]
 unresolved-import = "ignore"
 conflicting-declarations = "ignore"
