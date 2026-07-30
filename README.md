@@ -35,6 +35,7 @@ This installs `rich` which provides better rendering in Jupyter notebooks.
 from obi_auth import get_token
 
 access_token = get_token(environment="staging")
+access_token = get_token(environment="staging", token_provider="auth_manager")
 ```
 
 ## CLI
@@ -48,6 +49,7 @@ Authenticate and print the access token to stdout. Output is a single token stri
 ```sh
 obi-auth get-token
 obi-auth get-token -e production -m daf
+obi-auth get-token -p auth_manager
 obi-auth get-token --force-refresh
 ```
 
@@ -55,6 +57,7 @@ obi-auth get-token --force-refresh
 | --- | --- |
 | `-e`, `--environment` | Target environment: `staging` (default) or `production` |
 | `-m`, `--auth-mode` | Authentication method: `pkce` (default) or `daf` |
+| `-p`, `--token-provider` | Token issuer: `keycloak` (default) or `auth_manager` |
 | `--force-refresh` | Clear the cached token and authenticate again |
 
 ### `decode-token`
@@ -74,6 +77,7 @@ Authenticate, fetch user info from Keycloak, and print the result as indented JS
 ```sh
 obi-auth get-user-info
 obi-auth get-user-info -e production -m daf
+obi-auth get-user-info -p auth_manager
 obi-auth get-user-info --force-refresh
 obi-auth get-user-info | jq -r '.sub'
 ```
@@ -82,6 +86,7 @@ obi-auth get-user-info | jq -r '.sub'
 | --- | --- |
 | `-e`, `--environment` | Target environment: `staging` (default) or `production` |
 | `-m`, `--auth-mode` | Authentication method: `pkce` (default) or `daf` |
+| `-p`, `--token-provider` | Token issuer: `keycloak` (default) or `auth_manager` |
 | `--force-refresh` | Clear the cached token and authenticate again |
 
 ### Global options

@@ -4,7 +4,7 @@ import pytest
 
 from obi_auth.exception import AuthFlowError
 from obi_auth.flows import daf as test_module
-from obi_auth.typedef import AuthDeviceInfo, DeploymentEnvironment
+from obi_auth.typedef import AuthDeviceInfo, DeploymentEnvironment, KeycloakTokenInfo
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ def test_daf_authenticate_success(
 
     result = test_module.daf_authenticate(environment=DeploymentEnvironment.staging)
 
-    assert result == "test_token"
+    assert result == KeycloakTokenInfo(access_token="test_token")  # noqa: S106
     mock_display_prompt.assert_called_once_with(device_info)
     mock_poll.assert_called_once_with(device_info, DeploymentEnvironment.staging)
     mock_print.assert_called_with("\r   ✓ Authentication completed successfully!", flush=True)

@@ -8,7 +8,7 @@ import httpx
 
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError
-from obi_auth.typedef import AuthDeviceInfo, DeploymentEnvironment
+from obi_auth.typedef import AuthDeviceInfo, DeploymentEnvironment, KeycloakTokenInfo
 from obi_auth.util import is_running_in_notebook
 
 L = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ AUTHENTICATION_MESSAGE_DATA: AuthMessageData = {
 }
 
 
-def daf_authenticate(*, environment: DeploymentEnvironment) -> str:
+def daf_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenInfo:
     """Get access token using Device Authentication Flow."""
     device_info = _get_device_url_code(environment=environment)
 
@@ -42,7 +42,7 @@ def daf_authenticate(*, environment: DeploymentEnvironment) -> str:
 
     if token := _poll_device_code_token(device_info, environment):
         print("\r   ✓ Authentication completed successfully!", flush=True)
-        return token
+        return KeycloakTokenInfo(access_token=token)
 
     print("\r   ✗ Authentication failed - timeout reached", flush=True)
     raise AuthFlowError("Polling using device code reached max retries.")

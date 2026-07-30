@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from obi_auth.typedef import DeploymentEnvironment, TokenInfo
+from obi_auth.typedef import CachedTokenInfo, DeploymentEnvironment
 
 FILE_MODE = 0o600  # user only read/write
 DIRECTORY_MODE = 0o700
@@ -24,17 +24,17 @@ class Storage:
         filename = f"token_{environment}_{key}.json" if key else f"token_{environment}.json"
         self._file_path = config_dir / filename
 
-    def write(self, data: TokenInfo):
+    def write(self, data: CachedTokenInfo):
         """Write token info to file."""
         self._ensure_file_mode()
         self._file_path.write_text(data.model_dump_json())
 
-    def read(self) -> TokenInfo | None:
+    def read(self) -> CachedTokenInfo | None:
         """Read token info from file."""
         if not self.exists():
             return None
         data = self._file_path.read_bytes()
-        return TokenInfo.model_validate_json(data)
+        return CachedTokenInfo.model_validate_json(data)
 
     def clear(self) -> None:
         """Delete file."""

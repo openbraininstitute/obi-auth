@@ -5,6 +5,7 @@ import pytest
 from cryptography.fernet import Fernet
 
 from obi_auth import cache as test_module
+from obi_auth.typedef import KeycloakTokenInfo
 from obi_auth.util import derive_fernet_key
 
 CIPHER = Fernet(key=derive_fernet_key())
@@ -49,28 +50,29 @@ def test_token_cache(token):
     assert cache.get(storage) is None
 
     # set a valid token
-    cache.set(token, storage)
+    token_info = KeycloakTokenInfo(access_token=token)
+    cache.set(token_info, storage)
 
     # grab the stored token from the mock
-    (token_info,), _ = storage.write.call_args
+    (cached_token_info,), _ = storage.write.call_args
 
     # get the valid token
-    storage.read.return_value = token_info
+    storage.read.return_value = cached_token_info
 
     # fetch and decrypt the token
     res = cache.get(storage)
-    assert res == token
+    assert res == KeycloakTokenInfo(access_token=token)
 
 
 def test_token_cache__expired(token_expired):
     storage = Mock()
     cache = test_module.TokenCache()
-    cache.set(token_expired, storage)
+    cache.set(KeycloakTokenInfo(access_token=token_expired), storage)
 
-    (token_info,), _ = storage.write.call_args
+    (cached_token_info,), _ = storage.write.call_args
 
     storage.exists.return_value = True
-    storage.read.return_value = token_info
+    storage.read.return_value = cached_token_info
 
     res = cache.get(storage)
     assert res is None

@@ -89,5 +89,12 @@ class Settings(BaseSettings):
         base_url = self.get_auth_manager_url(override_env=override_env)
         return f"{base_url}/access-token"
 
+    def get_auth_manager_token_exchange_endpoint(
+        self, override_env: DeploymentEnvironment | None = None
+    ) -> str:
+        """Return auth-manager token exchange endpoint."""
+        base_url = self.get_auth_manager_url(override_env=override_env)
+        return f"{base_url}/token-exchange"
+
 
 settings = Settings()
