@@ -5,10 +5,13 @@ from collections.abc import Callable
 
 import jwt
 
-from obi_auth.cache import TokenCache
+from obi_auth.cache import AuthManagerTokenCache, TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
-from obi_auth.flows.auth_manager import auth_manager_exchange_token
+from obi_auth.flows.auth_manager import (
+    auth_manager_exchange_token,
+    auth_manager_mint_access_token,
+)
 from obi_auth.flows.daf import daf_authenticate
 from obi_auth.flows.pkce import pkce_authenticate
 from obi_auth.request import user_info
@@ -26,6 +29,7 @@ L = logging.getLogger(__name__)
 
 
 _TOKEN_CACHE = TokenCache()
+_AUTH_MANAGER_TOKEN_CACHE = AuthManagerTokenCache()
 
 
 def get_token(
@@ -55,6 +59,28 @@ def get_token(
         key=f"{auth_mode}_{token_provider}",
     )
 
+    if token_provider == TokenProvider.auth_manager:
+        return _get_auth_manager_token(
+            storage=storage,
+            environment=environment,
+            auth_mode=auth_mode,
+            force_refresh=force_refresh,
+        )
+    return _get_keycloak_token(
+        storage=storage,
+        environment=environment,
+        auth_mode=auth_mode,
+        force_refresh=force_refresh,
+    )
+
+
+def _get_keycloak_token(
+    *,
+    storage: Storage,
+    environment: DeploymentEnvironment,
+    auth_mode: AuthMode,
+    force_refresh: bool,
+) -> str:
     if force_refresh:
         L.debug("Forcing token refresh, clearing cached token")
         storage.clear()
@@ -63,19 +89,59 @@ def get_token(
         return token_info.access_token
 
     auth_method = _get_auth_method(auth_mode)
-    token_info: KeycloakTokenInfo = auth_method(environment=environment)
-
-    if token_provider == TokenProvider.auth_manager:
-        try:
-            token_info: AuthManagerTokenInfo = auth_manager_exchange_token(
-                token_info, environment=environment
-            )
-        except AuthFlowError as e:
-            raise ClientError("Authentication process failed.") from e
-
+    token_info = auth_method(environment=environment)
     _TOKEN_CACHE.set(token_info, storage)
-
     return token_info.access_token
+
+
+def _get_auth_manager_token(
+    *,
+    storage: Storage,
+    environment: DeploymentEnvironment,
+    auth_mode: AuthMode,
+    force_refresh: bool,
+) -> str:
+    if force_refresh:
+        L.debug("Forcing token refresh, clearing cached token")
+        storage.clear()
+    elif token_info := _AUTH_MANAGER_TOKEN_CACHE.get(storage):
+        if token_info.access_token:
+            L.debug("Using cached token")
+            return token_info.access_token
+        if refreshed := _refresh_auth_manager_token(
+            token_info.persistent_token_id, storage=storage, environment=environment
+        ):
+            if refreshed.access_token is None:
+                raise ClientError("Authentication process failed.")
+            return refreshed.access_token
+
+    auth_method = _get_auth_method(auth_mode)
+    keycloak_token = auth_method(environment=environment)
+    try:
+        token_info = auth_manager_exchange_token(keycloak_token, environment=environment)
+    except AuthFlowError as e:
+        raise ClientError("Authentication process failed.") from e
+
+    _AUTH_MANAGER_TOKEN_CACHE.set(token_info, storage)
+    if token_info.access_token is None:
+        raise ClientError("Authentication process failed.")
+    return token_info.access_token
+
+
+def _refresh_auth_manager_token(
+    persistent_token_id: str, *, storage: Storage, environment: DeploymentEnvironment
+) -> AuthManagerTokenInfo | None:
+    """Mint a new access token from a cached persistent token id."""
+    L.debug("Cached access token expired, minting a new one from persistent token id")
+    try:
+        token_info = auth_manager_mint_access_token(persistent_token_id, environment=environment)
+    except AuthFlowError:
+        L.debug("Failed to mint access token from persistent token id, clearing cache")
+        storage.clear()
+        return None
+
+    _AUTH_MANAGER_TOKEN_CACHE.set(token_info, storage)
+    return token_info
 
 
 def _get_auth_method(auth_mode: AuthMode) -> Callable[..., KeycloakTokenInfo]:

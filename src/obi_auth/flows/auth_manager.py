@@ -15,6 +15,27 @@ from obi_auth.typedef import (
 L = logging.getLogger(__name__)
 
 
+def auth_manager_mint_access_token(
+    persistent_token_id: str, *, environment: DeploymentEnvironment
+) -> AuthManagerTokenInfo:
+    """Mint an auth-manager access token from a persistent token id."""
+    mint_data = (
+        httpx.post(
+            url=settings.get_auth_manager_access_token_endpoint(override_env=environment),
+            headers={"id": persistent_token_id},
+        )
+        .raise_for_status()
+        .json()
+    )
+
+    if not (access_token := mint_data.get("data", {}).get("access_token")):
+        msg = "AuthManager unexpected payload: {}", mint_data
+        L.error(msg)
+        raise AuthFlowError(msg)
+
+    return AuthManagerTokenInfo(access_token=access_token, persistent_token_id=persistent_token_id)
+
+
 def auth_manager_exchange_token(
     token_info: KeycloakTokenInfo, *, environment: DeploymentEnvironment
 ) -> AuthManagerTokenInfo:
@@ -33,18 +54,4 @@ def auth_manager_exchange_token(
         L.error(msg)
         raise AuthFlowError(msg)
 
-    mint_data = (
-        httpx.post(
-            url=settings.get_auth_manager_access_token_endpoint(override_env=environment),
-            headers={"id": token_id},
-        )
-        .raise_for_status()
-        .json()
-    )
-
-    if not (access_token := mint_data.get("data", {}).get("access_token")):
-        msg = "AuthManager unexpected payload: {}", mint_data
-        L.error(msg)
-        raise AuthFlowError(msg)
-
-    return AuthManagerTokenInfo(access_token=access_token, persistent_token_id=token_id)
+    return auth_manager_mint_access_token(token_id, environment=environment)

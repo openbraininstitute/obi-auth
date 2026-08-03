@@ -20,10 +20,18 @@ class KeycloakRealm(StrEnum):
 
 
 class CachedTokenInfo(BaseModel):
-    """Encrypted token stored on disk."""
+    """Encrypted Keycloak token stored on disk."""
 
     token: bytes
     ttl: int
+
+
+class CachedAuthManagerTokenInfo(BaseModel):
+    """Encrypted auth-manager token and persistent id stored on disk."""
+
+    token: bytes
+    ttl: int
+    persistent_token_id: bytes
 
 
 class AuthMode(StrEnum):
@@ -51,7 +59,7 @@ class AuthManagerTokenInfo(BaseModel):
     """Auth-manager access token and associated persistent token id."""
 
     token_provider: Literal[TokenProvider.auth_manager] = TokenProvider.auth_manager
-    access_token: str
+    access_token: str | None
     persistent_token_id: str
 
 

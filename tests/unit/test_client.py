@@ -31,7 +31,7 @@ def test_get_token(mock_cache, mock_method):
     ),
 )
 @patch("obi_auth.client._get_auth_method")
-@patch("obi_auth.client._TOKEN_CACHE")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
 def test_get_token_auth_manager(mock_cache, mock_method, mock_auth_manager):
     mock_cache.get.return_value = None
     keycloak_token = KeycloakTokenInfo(access_token="keycloak-token")  # noqa: S106
@@ -42,9 +42,58 @@ def test_get_token_auth_manager(mock_cache, mock_method, mock_auth_manager):
     assert mock_auth_manager.call_args.args[0] == keycloak_token
 
 
+@patch(
+    "obi_auth.client.auth_manager_mint_access_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="minted-token",  # noqa: S106
+        persistent_token_id="id-1",  # noqa: S106
+    ),
+)
+@patch("obi_auth.client._get_auth_method")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_auth_manager_refresh_from_persistent_id(mock_cache, mock_method, mock_mint):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="id-1",  # noqa: S106
+    )
+
+    assert test_module.get_token(token_provider=TokenProvider.auth_manager) == "minted-token"
+    mock_mint.assert_called_once()
+    assert mock_mint.call_args.args[0] == "id-1"
+    mock_method.assert_not_called()
+    mock_cache.set.assert_called_once()
+
+
+@patch("obi_auth.client.auth_manager_mint_access_token")
+@patch(
+    "obi_auth.client.auth_manager_exchange_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="exchanged-token",  # noqa: S106
+        persistent_token_id="id-2",  # noqa: S106
+    ),
+)
+@patch("obi_auth.client._get_auth_method")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_auth_manager_refresh_failure_falls_back_to_exchange(
+    mock_cache, mock_method, mock_exchange, mock_mint
+):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="id-1",  # noqa: S106
+    )
+    mock_mint.side_effect = exception.AuthFlowError()
+    keycloak_token = KeycloakTokenInfo(access_token="keycloak-token")  # noqa: S106
+    mock_method.return_value = lambda *args, **kwargs: keycloak_token
+
+    assert test_module.get_token(token_provider=TokenProvider.auth_manager) == "exchanged-token"
+    mock_mint.assert_called_once()
+    mock_exchange.assert_called_once()
+    assert mock_exchange.call_args.args[0] == keycloak_token
+
+
 @patch("obi_auth.client.auth_manager_exchange_token")
 @patch("obi_auth.client._get_auth_method")
-@patch("obi_auth.client._TOKEN_CACHE")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
 def test_get_token_auth_manager_raises(mock_cache, mock_method, mock_auth_manager):
     mock_cache.get.return_value = None
     mock_method.return_value = lambda *args, **kwargs: KeycloakTokenInfo(

@@ -6,6 +6,30 @@ from obi_auth.flows import auth_manager as test_module
 from obi_auth.typedef import AuthManagerTokenInfo, KeycloakTokenInfo
 
 
+def test_auth_manager_mint_access_token(httpx_mock):
+    httpx_mock.add_response(
+        method="POST",
+        url=settings.get_auth_manager_access_token_endpoint(override_env="staging"),
+        json={"data": {"access_token": "minted-token"}},
+    )
+    res = test_module.auth_manager_mint_access_token("persistent-id", environment="staging")
+    assert res == AuthManagerTokenInfo(
+        access_token="minted-token",  # noqa: S106
+        persistent_token_id="persistent-id",  # noqa: S106
+    )
+    assert httpx_mock.get_request().headers["id"] == "persistent-id"
+
+
+def test_auth_manager_mint_access_token__raises(httpx_mock):
+    httpx_mock.add_response(
+        method="POST",
+        url=settings.get_auth_manager_access_token_endpoint(override_env="staging"),
+        json={"data": {}},
+    )
+    with pytest.raises(AuthFlowError, match="AuthManager unexpected payload"):
+        test_module.auth_manager_mint_access_token("persistent-id", environment="staging")
+
+
 def test_auth_manager_exchange_token(httpx_mock):
     httpx_mock.add_response(
         method="POST",

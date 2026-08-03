@@ -2,7 +2,13 @@
 
 from pathlib import Path
 
-from obi_auth.typedef import CachedTokenInfo, DeploymentEnvironment
+from pydantic import TypeAdapter
+
+from obi_auth.typedef import (
+    CachedAuthManagerTokenInfo,
+    CachedTokenInfo,
+    DeploymentEnvironment,
+)
 
 FILE_MODE = 0o600  # user only read/write
 DIRECTORY_MODE = 0o700
@@ -10,6 +16,9 @@ ENV_TO_FILE_NAME = {
     DeploymentEnvironment.staging: "token-staging.json",
     DeploymentEnvironment.production: "token-production.json",
 }
+
+StoredCachedTokenInfo = CachedAuthManagerTokenInfo | CachedTokenInfo
+_STORED_CACHED_TOKEN_ADAPTER = TypeAdapter(StoredCachedTokenInfo)
 
 
 class Storage:
@@ -24,17 +33,17 @@ class Storage:
         filename = f"token_{environment}_{key}.json" if key else f"token_{environment}.json"
         self._file_path = config_dir / filename
 
-    def write(self, data: CachedTokenInfo):
+    def write(self, data: StoredCachedTokenInfo):
         """Write token info to file."""
         self._ensure_file_mode()
         self._file_path.write_text(data.model_dump_json())
 
-    def read(self) -> CachedTokenInfo | None:
+    def read(self) -> StoredCachedTokenInfo | None:
         """Read token info from file."""
         if not self.exists():
             return None
         data = self._file_path.read_bytes()
-        return CachedTokenInfo.model_validate_json(data)
+        return _STORED_CACHED_TOKEN_ADAPTER.validate_json(data)
 
     def clear(self) -> None:
         """Delete file."""
