@@ -141,3 +141,37 @@ def test_auth_manager_token_cache__wrong_stored_type():
     storage.read.return_value = CachedTokenInfo(token=b"x", ttl=1)
     assert cache.get(storage) is None
     storage.clear.assert_called_once()
+
+
+def test_auth_manager_token_cache__missing_storage():
+    storage = Mock()
+    cache = test_module.AuthManagerTokenCache()
+    storage.read.return_value = None
+    assert cache.get(storage) is None
+
+
+def test_auth_manager_token_cache__invalid_persistent_id(token):
+    storage = Mock()
+    cache = test_module.AuthManagerTokenCache()
+    cache.set(
+        AuthManagerTokenInfo(
+            access_token=token,
+            persistent_token_id="persistent-id",  # noqa: S106
+        ),
+        storage,
+    )
+    (cached_token_info,), _ = storage.write.call_args
+    cached_token_info.persistent_token_id = b"invalid"
+
+    storage.read.return_value = cached_token_info
+    assert cache.get(storage) is None
+    storage.clear.assert_called_once()
+
+
+def test_auth_manager_token_cache__set_without_access_token():
+    cache = test_module.AuthManagerTokenCache()
+    with pytest.raises(ValueError, match="without an access_token"):
+        cache.set(
+            AuthManagerTokenInfo(access_token=None, persistent_token_id="id"),  # noqa: S106
+            Mock(),
+        )

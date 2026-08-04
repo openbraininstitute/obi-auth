@@ -107,6 +107,76 @@ def test_get_token_auth_manager_raises(mock_cache, mock_method, mock_auth_manage
 
 @patch("obi_auth.client.Storage")
 @patch("obi_auth.client._get_auth_method")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_auth_manager_force_refresh(mock_cache, mock_method, mock_storage):
+    mock_method.return_value = lambda *args, **kwargs: KeycloakTokenInfo(
+        access_token="fresh-token"  # noqa: S106
+    )
+    with patch(
+        "obi_auth.client.auth_manager_exchange_token",
+        return_value=AuthManagerTokenInfo(
+            access_token="auth-manager-token",  # noqa: S106
+            persistent_token_id="id-1",  # noqa: S106
+        ),
+    ):
+        result = test_module.get_token(
+            token_provider=TokenProvider.auth_manager,
+            force_refresh=True,
+        )
+
+    assert result == "auth-manager-token"
+    mock_cache.get.assert_not_called()
+    mock_storage.return_value.clear.assert_called_once_with()
+
+
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_auth_manager_uses_cached_access_token(mock_cache):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token="cached-token",  # noqa: S106
+        persistent_token_id="id-1",  # noqa: S106
+    )
+
+    assert test_module.get_token(token_provider=TokenProvider.auth_manager) == "cached-token"
+    mock_cache.get.assert_called_once()
+
+
+@patch("obi_auth.client.auth_manager_mint_access_token")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_auth_manager_refresh_returns_none_access_token(mock_cache, mock_mint):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="id-1",  # noqa: S106
+    )
+    mock_mint.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="id-1",  # noqa: S106
+    )
+
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module.get_token(token_provider=TokenProvider.auth_manager)
+
+
+@patch("obi_auth.client.auth_manager_exchange_token")
+@patch("obi_auth.client._get_auth_method")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_auth_manager_exchange_returns_none_access_token(
+    mock_cache, mock_method, mock_exchange
+):
+    mock_cache.get.return_value = None
+    mock_method.return_value = lambda *args, **kwargs: KeycloakTokenInfo(
+        access_token="keycloak-token"  # noqa: S106
+    )
+    mock_exchange.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="id-1",  # noqa: S106
+    )
+
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module.get_token(token_provider=TokenProvider.auth_manager)
+
+
+@patch("obi_auth.client.Storage")
+@patch("obi_auth.client._get_auth_method")
 @patch("obi_auth.client._TOKEN_CACHE")
 def test_get_token_force_refresh(mock_cache, mock_method, mock_storage):
     mock_cache.get.return_value = KeycloakTokenInfo(access_token="cached-token")  # noqa: S106
