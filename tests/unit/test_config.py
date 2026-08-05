@@ -110,3 +110,11 @@ def test_get_auth_manager_url(settings):
 
     with pytest.raises(exception.ConfigError, match="Unknown deployment environment foo"):
         settings.get_auth_manager_url(override_env="foo")
+
+
+def test_get_auth_manager_token_exchange_endpoint(settings):
+    res = settings.get_auth_manager_token_exchange_endpoint()
+    assert res == f"{STAGING_OBI_URL}/api/auth-manager/v1/token-exchange"
+
+    res = settings.get_auth_manager_token_exchange_endpoint(override_env="production")
+    assert res == f"{PROD_OBI_URL}/api/auth-manager/v1/token-exchange"

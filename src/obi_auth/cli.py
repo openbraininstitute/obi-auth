@@ -7,7 +7,7 @@ import sys
 import click
 
 import obi_auth
-from obi_auth.typedef import AuthMode, DeploymentEnvironment
+from obi_auth.typedef import AuthMode, DeploymentEnvironment, TokenProvider
 
 
 @click.group()
@@ -41,15 +41,31 @@ def main(log_level: str):
     help="Authentication method",
 )
 @click.option(
+    "--token-provider",
+    "-p",
+    type=click.Choice(TokenProvider),
+    default=TokenProvider.keycloak,
+    show_default=True,
+    help="Token issuer: keycloak or auth_manager",
+)
+@click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
     default=False,
 )
-def get_token(environment: DeploymentEnvironment, auth_mode: AuthMode, force_refresh: bool):
+def get_token(
+    environment: DeploymentEnvironment,
+    auth_mode: AuthMode,
+    token_provider: TokenProvider,
+    force_refresh: bool,
+):
     """Authenticate, print the token to stdout."""
     access_token = obi_auth.get_token(
-        environment=environment, auth_mode=auth_mode, force_refresh=force_refresh
+        environment=environment,
+        auth_mode=auth_mode,
+        token_provider=token_provider,
+        force_refresh=force_refresh,
     )
     print(access_token)
 
@@ -85,14 +101,30 @@ def decode_token(access_token: str | None):
     help="Authentication method",
 )
 @click.option(
+    "--token-provider",
+    "-p",
+    type=click.Choice(TokenProvider),
+    default=TokenProvider.keycloak,
+    show_default=True,
+    help="Token issuer: keycloak or auth_manager",
+)
+@click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
     default=False,
 )
-def get_user_info(environment: DeploymentEnvironment, auth_mode: AuthMode, force_refresh: bool):
+def get_user_info(
+    environment: DeploymentEnvironment,
+    auth_mode: AuthMode,
+    token_provider: TokenProvider,
+    force_refresh: bool,
+):
     """Show user info information."""
     access_token = obi_auth.get_token(
-        environment=environment, auth_mode=auth_mode, force_refresh=force_refresh
+        environment=environment,
+        auth_mode=auth_mode,
+        token_provider=token_provider,
+        force_refresh=force_refresh,
     )
     print(json.dumps(obi_auth.get_user_info(access_token, environment=environment), indent=2))

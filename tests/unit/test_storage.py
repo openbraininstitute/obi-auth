@@ -4,7 +4,7 @@ import stat
 import pytest
 
 from obi_auth import storage as test_module
-from obi_auth.typedef import DeploymentEnvironment, TokenInfo
+from obi_auth.typedef import CachedTokenInfo, DeploymentEnvironment
 
 PROD = DeploymentEnvironment.production
 STAGING = DeploymentEnvironment.staging
@@ -74,7 +74,7 @@ def test_storage__empty(config_dir):
 
 
 def test_storage__read(config_dir):
-    obj = TokenInfo(token=b"foo", ttl=100)
+    obj = CachedTokenInfo(token=b"foo", ttl=100)
 
     storage = test_module.Storage(config_dir, STAGING)
 
@@ -96,14 +96,14 @@ def test_storage__read(config_dir):
 
 def test_storage__write(config_dir):
     storage = test_module.Storage(config_dir, PROD)
-    obj = TokenInfo(token=b"foo", ttl=100)
+    obj = CachedTokenInfo(token=b"foo", ttl=100)
     storage.write(obj)
-    res = TokenInfo.model_validate_json(storage._file_path.read_bytes())
+    res = CachedTokenInfo.model_validate_json(storage._file_path.read_bytes())
     assert res == obj
 
-    obj2 = TokenInfo(token=b"bar", ttl=100)
+    obj2 = CachedTokenInfo(token=b"bar", ttl=100)
     storage.write(obj2)
-    res = TokenInfo.model_validate_json(storage._file_path.read_bytes())
+    res = CachedTokenInfo.model_validate_json(storage._file_path.read_bytes())
     assert res == obj2
 
 
@@ -131,9 +131,9 @@ def test_file_permissions(config_dir):
     storage = test_module.Storage(config_dir, STAGING)
     assert get_unix_permissions(storage._file_path) != 0o600
 
-    storage.write(TokenInfo(token=b"bar", ttl=100))
+    storage.write(CachedTokenInfo(token=b"bar", ttl=100))
     assert get_unix_permissions(storage._file_path) == 0o600
 
     storage.clear()
-    storage.write(TokenInfo(token=b"bar", ttl=100))
+    storage.write(CachedTokenInfo(token=b"bar", ttl=100))
     assert get_unix_permissions(storage._file_path) == 0o600

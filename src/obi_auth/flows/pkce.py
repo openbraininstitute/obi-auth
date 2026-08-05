@@ -11,7 +11,7 @@ import webbrowser
 from obi_auth.config import settings
 from obi_auth.request import exchange_code_for_token
 from obi_auth.server import AuthServer
-from obi_auth.typedef import DeploymentEnvironment
+from obi_auth.typedef import DeploymentEnvironment, KeycloakTokenInfo
 
 L = logging.getLogger(__name__)
 
@@ -72,9 +72,9 @@ def _exchange_code_for_token(
 
 def pkce_authenticate(
     *, server: AuthServer, environment: DeploymentEnvironment | None = None
-) -> str:
+) -> KeycloakTokenInfo:
     """Get access token using the PCKE authentication flow."""
     code_verifier, code_challenge = _generate_pkce_pair()
     code = _authorize(server, code_challenge, environment)
     access_token = _exchange_code_for_token(code, server.redirect_uri, code_verifier, environment)
-    return access_token
+    return KeycloakTokenInfo(access_token=access_token)

@@ -1,8 +1,9 @@
 """This module provides typedefs for the obi_auth service."""
 
 from enum import StrEnum, auto
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DeploymentEnvironment(StrEnum):
@@ -18,19 +19,54 @@ class KeycloakRealm(StrEnum):
     sbo = "SBO"
 
 
-class TokenInfo(BaseModel):
-    """Token information."""
+class CachedTokenInfo(BaseModel):
+    """Encrypted Keycloak token stored on disk."""
 
     token: bytes
     ttl: int
 
 
+class CachedAuthManagerTokenInfo(BaseModel):
+    """Encrypted auth-manager token and persistent id stored on disk."""
+
+    token: bytes
+    ttl: int
+    persistent_token_id: bytes
+
+
 class AuthMode(StrEnum):
-    """Authentication models."""
+    """Authentication methods for obtaining a Keycloak access token."""
 
     pkce = auto()
     daf = auto()
-    persistent_token = auto()
+
+
+class TokenProvider(StrEnum):
+    """Issuer of the access token returned by ``get_token``."""
+
+    keycloak = auto()
+    auth_manager = auto()
+
+
+class KeycloakTokenInfo(BaseModel):
+    """Keycloak access token."""
+
+    token_provider: Literal[TokenProvider.keycloak] = TokenProvider.keycloak
+    access_token: str
+
+
+class AuthManagerTokenInfo(BaseModel):
+    """Auth-manager access token and associated persistent token id."""
+
+    token_provider: Literal[TokenProvider.auth_manager] = TokenProvider.auth_manager
+    access_token: str | None
+    persistent_token_id: str
+
+
+TokenInfo = Annotated[
+    KeycloakTokenInfo | AuthManagerTokenInfo,
+    Field(discriminator="token_provider"),
+]
 
 
 class AuthDeviceInfo(BaseModel):
