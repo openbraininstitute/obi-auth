@@ -35,10 +35,13 @@ class CachedAuthManagerTokenInfo(BaseModel):
 
 
 class AuthMode(StrEnum):
-    """Authentication methods for obtaining a Keycloak access token."""
+    """Authentication methods for obtaining credentials."""
 
     pkce = auto()
     daf = auto()
+    # Public API: mint via auth-manager from an existing persistent token id
+    # (no Keycloak login). Backwards-compatible with pre-token-exchange callers.
+    persistent_token = auto()
 
 
 class TokenProvider(StrEnum):
