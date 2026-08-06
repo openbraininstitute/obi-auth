@@ -49,13 +49,10 @@ def get_token(
             (backwards-compatible public API for callers such as obi-one).
         token_provider: Who issues the returned access token when ``auth_mode`` is
             ``pkce`` or ``daf``. ``keycloak`` returns the Keycloak token;
-            ``auth_manager`` exchanges it and mints an auth-manager access token,
-            unless ``persistent_token_id`` is provided (then that id is used and no
-            new one is issued). Ignored when ``auth_mode`` is ``persistent_token``.
+            ``auth_manager`` exchanges it and mints an auth-manager access token.
+            Ignored when ``auth_mode`` is ``persistent_token``.
         force_refresh: Clear the cached token and authenticate again.
         persistent_token_id: Required when ``auth_mode`` is ``persistent_token``.
-            Optional when ``token_provider`` is ``auth_manager``: use this id instead
-            of exchanging for a new one; minting fails if the id is no longer valid.
     """
     auth_mode = AuthMode(auth_mode)
     token_provider = TokenProvider(token_provider)
@@ -66,14 +63,6 @@ def get_token(
     if auth_mode == AuthMode.persistent_token:
         if not persistent_token_id:
             raise ClientError("persistent_token_id is required when auth_mode is persistent_token.")
-        return _get_persistent_token(
-            environment=environment,
-            persistent_token_id=persistent_token_id,
-            force_refresh=force_refresh,
-        )
-
-    # Explicit persistent id with auth_manager: mint from that id only (no exchange).
-    if token_provider == TokenProvider.auth_manager and persistent_token_id:
         return _get_persistent_token(
             environment=environment,
             persistent_token_id=persistent_token_id,

@@ -57,7 +57,6 @@ Authenticate and print the access token to stdout. Output is a single token stri
 obi-auth get-token
 obi-auth get-token -e production -m daf
 obi-auth get-token -p auth_manager
-obi-auth get-token -p auth_manager --persistent-token-id <uuid>
 obi-auth get-token -m persistent_token --persistent-token-id <uuid>
 obi-auth get-token --force-refresh
 ```
@@ -67,7 +66,7 @@ obi-auth get-token --force-refresh
 | `-e`, `--environment` | Target environment: `staging` (default) or `production` |
 | `-m`, `--auth-mode` | Authentication method: `pkce` (default), `daf`, or `persistent_token` |
 | `-p`, `--token-provider` | Token issuer: `keycloak` (default) or `auth_manager` |
-| `--persistent-token-id` | Persistent token id (required for `persistent_token`; optional for `auth_manager` to reuse an existing id without issuing a new one) |
+| `--persistent-token-id` | Persistent token id (required when `--auth-mode persistent_token`) |
 | `--force-refresh` | Clear the cached token and authenticate again |
 
 ### `decode-token`
@@ -97,7 +96,7 @@ obi-auth get-user-info | jq -r '.sub'
 | `-e`, `--environment` | Target environment: `staging` (default) or `production` |
 | `-m`, `--auth-mode` | Authentication method: `pkce` (default), `daf`, or `persistent_token` |
 | `-p`, `--token-provider` | Token issuer: `keycloak` (default) or `auth_manager` |
-| `--persistent-token-id` | Persistent token id (required for `persistent_token`; optional for `auth_manager` to reuse an existing id without issuing a new one) |
+| `--persistent-token-id` | Persistent token id (required when `--auth-mode persistent_token`) |
 | `--force-refresh` | Clear the cached token and authenticate again |
 
 ### Global options

@@ -51,8 +51,7 @@ def main(log_level: str):
 @click.option(
     "--persistent-token-id",
     default=None,
-    help="Persistent token id (required for persistent_token; "
-    "optional for auth_manager to reuse an existing id)",
+    help="Persistent token id (required when auth-mode is persistent_token)",
 )
 @click.option(
     "--force-refresh",
@@ -119,8 +118,7 @@ def decode_token(access_token: str | None):
 @click.option(
     "--persistent-token-id",
     default=None,
-    help="Persistent token id (required for persistent_token; "
-    "optional for auth_manager to reuse an existing id)",
+    help="Persistent token id (required when auth-mode is persistent_token)",
 )
 @click.option(
     "--force-refresh",
