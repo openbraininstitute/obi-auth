@@ -158,7 +158,7 @@ def test_display_notebook_auth_prompt_fallback(mock_terminal, mock_console, devi
     mock_terminal.assert_called_once_with(device_info)
 
 
-@patch("obi_auth.flows.daf.httpx.post")
+@patch("obi_auth.flows.daf.httpx2.post")
 def test_get_device_url_code(mock_post, device_info):
     """Test _get_device_url_code function."""
     mock_response = mock_post.return_value

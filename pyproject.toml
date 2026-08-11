@@ -7,7 +7,7 @@ name = "obi_auth"
 dependencies = [
     "click",
     "cryptography>=3.0",
-    "httpx",
+    "httpx2",
     "pydantic",
     "pydantic-settings",
     "pyjwt",
@@ -147,7 +147,7 @@ extras = ["notebook"]
 deps = [
     "pytest",
     "pytest-cov",
-    "pytest-httpx",
+    "httpx2-pytest",
     "coverage[toml]",
 ]
 commands = [
