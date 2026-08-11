@@ -49,7 +49,6 @@ local_scheme = "no-local-version"
 addopts = [
     "-vv",
     "-ra",
-    "-p pytest_httpx2",
     "--import-mode=importlib",
     "--cov=obi_auth",
     "--durations=10",
