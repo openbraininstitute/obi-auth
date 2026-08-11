@@ -1,3 +1,5 @@
+import socket
+
 import httpx
 import pytest
 
@@ -44,6 +46,19 @@ def test_wait_for_code(running_server):
 
     res = running_server.wait_for_code()
     assert res == "mock-code"
+
+
+def test_run_port_unavailable(server, monkeypatch):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as taken:
+        taken.bind(("localhost", 0))
+        taken.listen(1)
+        monkeypatch.setattr(
+            AuthServer, "_find_free_port", staticmethod(lambda: taken.getsockname()[1])
+        )
+
+        with pytest.raises(LocalServerError, match="Failed to listen on localhost:"):
+            with server.run():
+                pass
 
 
 def test_wait_for_code_missing_code(server):
