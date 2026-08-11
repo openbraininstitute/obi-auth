@@ -7,12 +7,10 @@ name = "obi_auth"
 dependencies = [
     "click",
     "cryptography>=3.0",
-    "fastapi",
     "httpx",
     "pydantic",
     "pydantic-settings",
     "pyjwt",
-    "uvicorn",
 ]
 authors = [
     {name = "Open Brain Institute", email = "info@openbraininstitute.org"}

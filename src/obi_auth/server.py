@@ -1,21 +1,24 @@
 """This module provides a simple HTTP server that listens for a Keycloak authorization code."""
 
 import contextlib
+import functools
+import json
 import logging
 import socket
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Self
-
-import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Any, Self
+from urllib.parse import parse_qs, urlparse
 
 from obi_auth.config import settings
 from obi_auth.exception import LocalServerError
 
 L = logging.getLogger(__name__)
 HOST = "localhost"
+CALLBACK_PATH = "/callback"
 
 
 @dataclass
@@ -26,34 +29,63 @@ class AuthState:
     event: threading.Event = threading.Event()
 
 
+class _CallbackHandler(BaseHTTPRequestHandler):
+    """Request handler extracting the authorization code out of the Keycloak redirect."""
+
+    def __init__(self, *args, auth_state: AuthState, **kwargs) -> None:
+        """Initialize the handler with the state to populate."""
+        self.auth_state = auth_state
+        super().__init__(*args, **kwargs)
+
+    def do_GET(self) -> None:  # noqa: N802
+        """Handle the Keycloak redirect and extract the authorization code."""
+        url = urlparse(self.path)
+
+        if url.path != CALLBACK_PATH:
+            self._respond(HTTPStatus.NOT_FOUND, {"detail": "Not Found"})
+            return
+
+        codes = parse_qs(url.query).get("code")
+
+        if not codes:
+            self._respond(HTTPStatus.BAD_REQUEST, {"detail": "Authorization code not found"})
+            return
+
+        self.auth_state.code = codes[0]
+        self.auth_state.event.set()  # Signal that we received the code
+
+        self._respond(
+            HTTPStatus.OK, {"message": "Authentication successful. You can close this window."}
+        )
+
+    def _respond(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
+        """Write a JSON response with the given status code."""
+        body = json.dumps(payload).encode()
+        self.send_response(status)
+        self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+        """Redirect the request logs to this module's logger instead of stderr."""
+        L.debug("%s - %s", self.address_string(), format % args)
+
+
 class AuthServer:
     """Class to manage authentication state."""
 
     def __init__(self):
         """Initialize authentication server."""
-        self.app = FastAPI()
         self.auth_state = AuthState()
         self.port = None
-
-        @self.app.get("/callback")
-        def callback(request: Request):
-            """Handle the Keycloak redirect and extracts the authorization code."""
-            code = request.query_params.get("code")
-
-            if not code:
-                raise HTTPException(status_code=400, detail="Authorization code not found")
-
-            self.auth_state.code = code
-            self.auth_state.event.set()  # Signal that we received the code
-
-            return {"message": "Authentication successful. You can close this window."}
 
     @property
     def redirect_uri(self) -> str:
         """Return redirect uril for server callback."""
         if not self.port:
             raise LocalServerError("Server has no port assigned.")
-        return f"http://{HOST}:{self.port}/callback"
+        return f"http://{HOST}:{self.port}{CALLBACK_PATH}"
 
     @staticmethod
     def _find_free_port() -> int:
@@ -66,17 +98,22 @@ class AuthServer:
     def run(self) -> Iterator[Self]:
         """Start server in a background thread."""
         self.port = self._find_free_port()
-        config = uvicorn.Config(app=self.app, port=self.port, host=HOST, log_level="error")
-        server = uvicorn.Server(config=config)
-        thread = threading.Thread(target=server.run, daemon=True)
+        handler = functools.partial(_CallbackHandler, auth_state=self.auth_state)
+        try:
+            server = ThreadingHTTPServer((HOST, self.port), handler)
+        except OSError as e:
+            raise LocalServerError(f"Failed to listen on {HOST}:{self.port}") from e
+
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
         try:
             thread.start()
             L.info("Local server listening on http://%s:%s", HOST, self.port)
             yield self
         finally:
             L.debug("Stopping the local server")
-            server.should_exit = True
+            server.shutdown()
             thread.join(timeout=1)
+            server.server_close()
 
     def wait_for_code(self, timeout: int = settings.LOCAL_SERVER_TIMEOUT) -> str:
         """Wait for code."""
