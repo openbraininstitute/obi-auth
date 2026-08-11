@@ -4,7 +4,14 @@ import json
 import logging
 import sys
 
-import click
+try:
+    import click
+except ImportError as exc:
+    raise SystemExit(
+        "The obi-auth CLI requires optional dependencies that are not installed.\n"
+        "Install them with:\n"
+        "  pip install 'obi-auth[cli]'"
+    ) from exc
 
 import obi_auth
 from obi_auth.typedef import AuthMode, DeploymentEnvironment, TokenProvider

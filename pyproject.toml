@@ -5,7 +5,6 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "obi_auth"
 dependencies = [
-    "click",
     "cryptography>=3.0",
     "httpx2",
     "pydantic",
@@ -30,6 +29,9 @@ classifiers = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+cli = [
+    "click",
+]
 notebook = [
     "rich",
 ]
@@ -143,7 +145,7 @@ env_list = [
 ]
 
 [tool.tox.env_run_base]
-extras = ["notebook"]
+extras = ["cli", "notebook"]
 deps = [
     "pytest",
     "pytest-cov",

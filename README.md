@@ -19,6 +19,16 @@ obi-auth is a library for retrieving Keycloak access tokens interactively. It he
 pip install obi-auth
 ```
 
+### CLI Support
+
+To use the `obi-auth` command-line interface:
+
+```sh
+pip install obi-auth[cli]
+```
+
+This installs `click` which is required by the CLI.
+
 ### Notebook Support
 
 For enhanced Jupyter notebook support with Rich display integration:
@@ -40,7 +50,7 @@ access_token = get_token(environment="staging", token_provider="auth_manager")
 
 ## CLI
 
-After installation, the `obi-auth` command is available. Run `obi-auth --help` for the full list of commands and options.
+After installing with the `cli` extra, the `obi-auth` command is available. Run `obi-auth --help` for the full list of commands and options.
 
 ### `get-token`
 

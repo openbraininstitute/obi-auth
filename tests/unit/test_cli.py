@@ -20,6 +20,50 @@ def cli_runner():
     return CliRunner()
 
 
+def test_missing_cli_extra_shows_install_hint():
+    """Running the CLI entry without click should explain how to install the extra."""
+    script = textwrap.dedent(
+        """
+        import builtins
+        import sys
+
+        real_import = builtins.__import__
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "click" or name.startswith("click."):
+                raise ImportError("No module named 'click'")
+            return real_import(name, globals, locals, fromlist, level)
+
+        builtins.__import__ = guarded_import
+        for module_name in list(sys.modules):
+            if module_name == "click" or module_name.startswith("click."):
+                del sys.modules[module_name]
+            if module_name == "obi_auth.cli" or module_name.startswith("obi_auth.cli."):
+                del sys.modules[module_name]
+
+        try:
+            import obi_auth.cli  # noqa: F401
+        except SystemExit as exc:
+            message = str(exc)
+            if message and message != "1":
+                print(message, file=sys.stderr)
+            raise SystemExit(1) from None
+        raise SystemExit("expected SystemExit when click is missing")
+        """
+    )
+
+    result = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "pip install 'obi-auth[cli]'" in result.stderr
+    assert "optional dependencies" in result.stderr
+
+
 def test_help(cli_runner):
     result = cli_runner.invoke(main, ["--help"])
     assert "CLI for obi-auth" in result.output
