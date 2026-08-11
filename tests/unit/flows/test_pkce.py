@@ -21,8 +21,8 @@ def test_build_auth_url():
     )
 
 
-def test_exchange_code_for_token(httpx_mock):
-    httpx_mock.add_response(method="POST", json={"access_token": "mock-token"})
+def test_exchange_code_for_token(httpx2_mock):
+    httpx2_mock.post().respond(json={"access_token": "mock-token"})
     res = test_module._exchange_code_for_token(
         code="mock-code",
         redirect_uri="mock-uri",

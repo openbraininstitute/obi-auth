@@ -4,7 +4,7 @@ import logging
 from time import sleep
 from typing import TypedDict
 
-import httpx
+import httpx2
 
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError
@@ -53,7 +53,7 @@ def _get_device_url_code(
     environment: DeploymentEnvironment,
 ) -> AuthDeviceInfo:
     url = settings.get_keycloak_device_auth_endpoint(environment)
-    response = httpx.post(
+    response = httpx2.post(
         url=url,
         data={
             "client_id": settings.KEYCLOAK_CLIENT_ID,
@@ -77,7 +77,7 @@ def _get_device_code_token(
     device_info: AuthDeviceInfo, environment: DeploymentEnvironment
 ) -> str | None:
     url = settings.get_keycloak_token_endpoint(environment)
-    response = httpx.post(
+    response = httpx2.post(
         url=url,
         data={
             "grant_type": "urn:ietf:params:oauth:grant-type:device_code",

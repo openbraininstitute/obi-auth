@@ -1,6 +1,6 @@
 import socket
 
-import httpx
+import httpx2
 import pytest
 
 from obi_auth import server as test_module
@@ -38,10 +38,10 @@ def test_wait_for_code(running_server):
     with pytest.raises(LocalServerError, match="Timeout waiting for authorization code"):
         running_server.wait_for_code(timeout=0.1)
 
-    response = httpx.get(f"{running_server.redirect_uri}")
+    response = httpx2.get(f"{running_server.redirect_uri}")
     assert response.status_code == 400
 
-    response = httpx.get(f"{running_server.redirect_uri}?code=mock-code")
+    response = httpx2.get(f"{running_server.redirect_uri}?code=mock-code")
     response.raise_for_status()
 
     res = running_server.wait_for_code()
@@ -49,7 +49,7 @@ def test_wait_for_code(running_server):
 
 
 def test_unknown_path_returns_not_found(running_server):
-    response = httpx.get(f"http://localhost:{running_server.port}/unknown")
+    response = httpx2.get(f"http://localhost:{running_server.port}/unknown")
     assert response.status_code == 404
     assert response.json() == {"detail": "Not Found"}
 

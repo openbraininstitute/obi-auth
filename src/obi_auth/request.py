@@ -1,6 +1,6 @@
 """Requests module."""
 
-import httpx
+import httpx2
 
 from obi_auth.config import settings
 from obi_auth.typedef import DeploymentEnvironment
@@ -15,7 +15,7 @@ def exchange_code_for_token(
 ):
     """Exhange authentication code for acces token response."""
     url = settings.get_keycloak_token_endpoint(override_env)
-    response = httpx.post(
+    response = httpx2.post(
         url=url,
         data={
             "grant_type": "authorization_code",
@@ -35,6 +35,6 @@ def user_info(
 ):
     """Request user info with a valid token."""
     url = settings.get_keycloak_user_info_endpoint(environment)
-    response = httpx.post(url, headers={"Authorization": f"Bearer {token}"})
+    response = httpx2.post(url, headers={"Authorization": f"Bearer {token}"})
     response.raise_for_status()
     return response

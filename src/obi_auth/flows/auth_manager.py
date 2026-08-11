@@ -2,7 +2,7 @@
 
 import logging
 
-import httpx
+import httpx2
 
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError
@@ -20,7 +20,7 @@ def auth_manager_mint_access_token(
 ) -> AuthManagerTokenInfo:
     """Mint an auth-manager access token from a persistent token id."""
     mint_data = (
-        httpx.post(
+        httpx2.post(
             url=settings.get_auth_manager_access_token_endpoint(override_env=environment),
             headers={"id": persistent_token_id},
         )
@@ -41,7 +41,7 @@ def auth_manager_exchange_token(
 ) -> AuthManagerTokenInfo:
     """Exchange a Keycloak access token and mint an auth-manager access token."""
     exchange_data = (
-        httpx.post(
+        httpx2.post(
             url=settings.get_auth_manager_token_exchange_endpoint(override_env=environment),
             headers={"Authorization": f"Bearer {token_info.access_token}"},
         )
