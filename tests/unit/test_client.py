@@ -246,9 +246,9 @@ def test_get_token_info():
 def test_get_user_info(httpx2_mock, settings):
     mock_json_response = {"foo": "bar", "bar": "foo"}
 
-    httpx2_mock.post(
-        settings.get_keycloak_user_info_endpoint(override_env="staging")
-    ).respond(json=mock_json_response)
+    httpx2_mock.post(settings.get_keycloak_user_info_endpoint(override_env="staging")).respond(
+        json=mock_json_response
+    )
 
     res = test_module.get_user_info(token=None, environment="staging")
     assert res == mock_json_response
