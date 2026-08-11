@@ -59,13 +59,14 @@ def test_daf_authenticate_failure(
     mock_print.assert_called_with("\r   ✗ Authentication failed - timeout reached", flush=True)
 
 
-def test_device_code_token(httpx_mock, device_info):
-    httpx_mock.add_response(method="POST", json={"access_token": "foo"})
+def test_device_code_token(httpx2_mock, device_info):
+    httpx2_mock.post().respond(json={"access_token": "foo"})
 
     res = test_module._get_device_code_token(device_info, None)
     assert res == "foo"
 
-    httpx_mock.add_response(method="POST", status_code=400, json={"error": "authorization_pending"})
+    httpx2_mock.reset()
+    httpx2_mock.post().respond(400, json={"error": "authorization_pending"})
     res = test_module._get_device_code_token(device_info, None)
     assert res is None
 

@@ -49,6 +49,7 @@ local_scheme = "no-local-version"
 addopts = [
     "-vv",
     "-ra",
+    "-p pytest_httpx2",
     "--import-mode=importlib",
     "--cov=obi_auth",
     "--durations=10",
@@ -147,7 +148,7 @@ extras = ["notebook"]
 deps = [
     "pytest",
     "pytest-cov",
-    "httpx2-pytest",
+    "pytest-httpx2",
     "coverage[toml]",
 ]
 commands = [

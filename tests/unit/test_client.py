@@ -201,8 +201,8 @@ def test_get_auth_method():
 
 @patch("obi_auth.flows.pkce.webbrowser")
 @patch("obi_auth.client.AuthServer")
-def test_pkce_authenticate(mock_server, mock_web, httpx_mock):
-    httpx_mock.add_response(method="POST", json={"access_token": "mock-token"})
+def test_pkce_authenticate(mock_server, mock_web, httpx2_mock):
+    httpx2_mock.post().respond(json={"access_token": "mock-token"})
 
     mock_local = Mock()
     mock_local.redirect_uri = "mock-redirect-uri"
@@ -228,7 +228,7 @@ def test_pkce_authenticate(mock_server, mock_web, httpx_mock):
 
 
 @patch("obi_auth.client.daf_authenticate")
-def test_daf_authenticate(auth_method, httpx_mock):
+def test_daf_authenticate(auth_method):
     auth_method.side_effect = exception.AuthFlowError()
     with pytest.raises(exception.ClientError, match="Authentication process failed."):
         test_module._daf_authenticate(environment=None)
@@ -243,14 +243,12 @@ def test_get_token_info():
     assert decoded == payload
 
 
-def test_get_user_info(httpx_mock, settings):
+def test_get_user_info(httpx2_mock, settings):
     mock_json_response = {"foo": "bar", "bar": "foo"}
 
-    httpx_mock.add_response(
-        method="POST",
-        url=settings.get_keycloak_user_info_endpoint(override_env="staging"),
-        json=mock_json_response,
-    )
+    httpx2_mock.post(
+        settings.get_keycloak_user_info_endpoint(override_env="staging")
+    ).respond(json=mock_json_response)
 
     res = test_module.get_user_info(token=None, environment="staging")
     assert res == mock_json_response
