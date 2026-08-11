@@ -175,6 +175,175 @@ def test_get_token_auth_manager_exchange_returns_none_access_token(
         test_module.get_token(token_provider=TokenProvider.auth_manager)
 
 
+@patch(
+    "obi_auth.client.auth_manager_mint_access_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="minted-token",  # noqa: S106
+        persistent_token_id="pers-id",  # noqa: S106
+    ),
+)
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token(mock_cache, mock_mint):
+    mock_cache.get.return_value = None
+
+    result = test_module.get_token(
+        auth_mode="persistent_token",
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    assert result == "minted-token"
+    mock_mint.assert_called_once()
+    assert mock_mint.call_args.args[0] == "pers-id"
+    mock_cache.set.assert_called_once()
+
+
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token_uses_cache(mock_cache):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token="cached-token",  # noqa: S106
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    result = test_module.get_token(
+        auth_mode=AuthMode.persistent_token,
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    assert result == "cached-token"
+
+
+def test_get_token_persistent_token_requires_id():
+    with pytest.raises(exception.ClientError, match="persistent_token_id is required"):
+        test_module.get_token(auth_mode="persistent_token")
+
+
+@patch("obi_auth.client.auth_manager_mint_access_token")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token_raises(mock_cache, mock_mint):
+    mock_cache.get.return_value = None
+    mock_mint.side_effect = exception.AuthFlowError()
+
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module.get_token(
+            auth_mode="persistent_token",
+            persistent_token_id="pers-id",  # noqa: S106
+        )
+
+
+@patch("obi_auth.client.Storage")
+@patch(
+    "obi_auth.client.auth_manager_mint_access_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="minted-token",  # noqa: S106
+        persistent_token_id="pers-id",  # noqa: S106
+    ),
+)
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token_force_refresh(mock_cache, mock_mint, mock_storage):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token="cached-token",  # noqa: S106
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    result = test_module.get_token(
+        auth_mode="persistent_token",
+        persistent_token_id="pers-id",  # noqa: S106
+        force_refresh=True,
+    )
+
+    assert result == "minted-token"
+    mock_cache.get.assert_not_called()
+    mock_storage.return_value.clear.assert_called_once_with()
+    mock_mint.assert_called_once()
+    assert mock_storage.call_args.kwargs["key"] == "pers-id"
+
+
+@patch(
+    "obi_auth.client.auth_manager_mint_access_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="minted-token",  # noqa: S106
+        persistent_token_id="pers-id",  # noqa: S106
+    ),
+)
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token_expired_cache_remints(mock_cache, mock_mint):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    result = test_module.get_token(
+        auth_mode="persistent_token",
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    assert result == "minted-token"
+    mock_mint.assert_called_once_with(
+        "pers-id", environment=mock_mint.call_args.kwargs["environment"]
+    )
+
+
+@patch("obi_auth.client.auth_manager_mint_access_token")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token_mint_returns_none(mock_cache, mock_mint):
+    mock_cache.get.return_value = None
+    mock_mint.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module.get_token(
+            auth_mode="persistent_token",
+            persistent_token_id="pers-id",  # noqa: S106
+        )
+
+
+@patch("obi_auth.client.auth_manager_mint_access_token")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token_remint_returns_none_access_token(mock_cache, mock_mint):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+    mock_mint.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module.get_token(
+            auth_mode="persistent_token",
+            persistent_token_id="pers-id",  # noqa: S106
+        )
+
+
+@patch(
+    "obi_auth.client.auth_manager_mint_access_token",
+    side_effect=[
+        exception.AuthFlowError(),
+        AuthManagerTokenInfo(
+            access_token="minted-token",  # noqa: S106
+            persistent_token_id="pers-id",  # noqa: S106
+        ),
+    ],
+)
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_persistent_token_remint_failure_retries_mint(mock_cache, mock_mint):
+    mock_cache.get.return_value = AuthManagerTokenInfo(
+        access_token=None,
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    result = test_module.get_token(
+        auth_mode="persistent_token",
+        persistent_token_id="pers-id",  # noqa: S106
+    )
+
+    assert result == "minted-token"
+    assert mock_mint.call_count == 2
+
+
 @patch("obi_auth.client.Storage")
 @patch("obi_auth.client._get_auth_method")
 @patch("obi_auth.client._TOKEN_CACHE")

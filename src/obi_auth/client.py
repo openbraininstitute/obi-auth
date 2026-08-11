@@ -38,21 +38,37 @@ def get_token(
     auth_mode: AuthMode = AuthMode.pkce,
     token_provider: TokenProvider = TokenProvider.keycloak,
     force_refresh: bool = False,
+    persistent_token_id: str | None = None,
 ) -> str:
     """Get token.
 
     Args:
         environment: Target deployment environment.
-        auth_mode: How to authenticate with Keycloak (``pkce`` or ``daf``).
-        token_provider: Who issues the returned access token. ``keycloak`` returns
-            the Keycloak token directly; ``auth_manager`` exchanges it for a
-            persistent token and mints an auth-manager access token.
+        auth_mode: How to authenticate with Keycloak (``pkce`` or ``daf``), or
+            ``persistent_token`` to mint from an existing auth-manager id
+            (backwards-compatible public API for callers such as obi-one).
+        token_provider: Who issues the returned access token when ``auth_mode`` is
+            ``pkce`` or ``daf``. ``keycloak`` returns the Keycloak token;
+            ``auth_manager`` exchanges it and mints an auth-manager access token.
+            Ignored when ``auth_mode`` is ``persistent_token``.
         force_refresh: Clear the cached token and authenticate again.
+        persistent_token_id: Required when ``auth_mode`` is ``persistent_token``.
     """
     auth_mode = AuthMode(auth_mode)
     token_provider = TokenProvider(token_provider)
 
     L.debug("Using %s as the config dir", settings.config_dir)
+
+    # Public API compat: get_token(auth_mode="persistent_token", persistent_token_id=...)
+    if auth_mode == AuthMode.persistent_token:
+        if not persistent_token_id:
+            raise ClientError("persistent_token_id is required when auth_mode is persistent_token.")
+        return _get_persistent_token(
+            environment=environment,
+            persistent_token_id=persistent_token_id,
+            force_refresh=force_refresh,
+        )
+
     storage = Storage(
         config_dir=settings.config_dir,
         environment=environment,
@@ -72,6 +88,43 @@ def get_token(
         auth_mode=auth_mode,
         force_refresh=force_refresh,
     )
+
+
+def _get_persistent_token(
+    *,
+    environment: DeploymentEnvironment,
+    persistent_token_id: str,
+    force_refresh: bool,
+) -> str:
+    """Mint from a known persistent id using the auth-manager cache/mint helpers."""
+    storage = Storage(
+        config_dir=settings.config_dir,
+        environment=environment,
+        key=persistent_token_id,
+    )
+    if force_refresh:
+        L.debug("Forcing token refresh, clearing cached token")
+        storage.clear()
+    elif token_info := _AUTH_MANAGER_TOKEN_CACHE.get(storage):
+        if token_info.access_token:
+            L.debug("Using cached token")
+            return token_info.access_token
+        if refreshed := _refresh_auth_manager_token(
+            token_info.persistent_token_id, storage=storage, environment=environment
+        ):
+            if refreshed.access_token is None:
+                raise ClientError("Authentication process failed.")
+            return refreshed.access_token
+
+    try:
+        token_info = auth_manager_mint_access_token(persistent_token_id, environment=environment)
+    except AuthFlowError as e:
+        raise ClientError("Authentication process failed.") from e
+
+    _AUTH_MANAGER_TOKEN_CACHE.set(token_info, storage)
+    if token_info.access_token is None:
+        raise ClientError("Authentication process failed.")
+    return token_info.access_token
 
 
 def _get_keycloak_token(

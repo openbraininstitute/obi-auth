@@ -49,6 +49,11 @@ def main(log_level: str):
     help="Token issuer: keycloak or auth_manager",
 )
 @click.option(
+    "--persistent-token-id",
+    default=None,
+    help="Persistent token id (required when auth-mode is persistent_token)",
+)
+@click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
@@ -58,6 +63,7 @@ def get_token(
     environment: DeploymentEnvironment,
     auth_mode: AuthMode,
     token_provider: TokenProvider,
+    persistent_token_id: str | None,
     force_refresh: bool,
 ):
     """Authenticate, print the token to stdout."""
@@ -65,6 +71,7 @@ def get_token(
         environment=environment,
         auth_mode=auth_mode,
         token_provider=token_provider,
+        persistent_token_id=persistent_token_id,
         force_refresh=force_refresh,
     )
     print(access_token)
@@ -109,6 +116,11 @@ def decode_token(access_token: str | None):
     help="Token issuer: keycloak or auth_manager",
 )
 @click.option(
+    "--persistent-token-id",
+    default=None,
+    help="Persistent token id (required when auth-mode is persistent_token)",
+)
+@click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
@@ -118,6 +130,7 @@ def get_user_info(
     environment: DeploymentEnvironment,
     auth_mode: AuthMode,
     token_provider: TokenProvider,
+    persistent_token_id: str | None,
     force_refresh: bool,
 ):
     """Show user info information."""
@@ -125,6 +138,7 @@ def get_user_info(
         environment=environment,
         auth_mode=auth_mode,
         token_provider=token_provider,
+        persistent_token_id=persistent_token_id,
         force_refresh=force_refresh,
     )
     print(json.dumps(obi_auth.get_user_info(access_token, environment=environment), indent=2))
