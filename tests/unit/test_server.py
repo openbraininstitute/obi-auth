@@ -48,6 +48,12 @@ def test_wait_for_code(running_server):
     assert res == "mock-code"
 
 
+def test_unknown_path_returns_not_found(running_server):
+    response = httpx.get(f"http://localhost:{running_server.port}/unknown")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+
+
 def test_run_port_unavailable(server, monkeypatch):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as taken:
         taken.bind(("localhost", 0))
