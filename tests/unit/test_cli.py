@@ -1,9 +1,12 @@
+import builtins
+import importlib
 import json
 import os
 import shutil
 import subprocess
 import sys
 import textwrap
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,6 +18,40 @@ from obi_auth.cli import main
 from obi_auth.typedef import AuthMode, DeploymentEnvironment, TokenProvider
 
 
+def _is_click_or_cli_module(name: str) -> bool:
+    return (
+        name == "click"
+        or name.startswith("click.")
+        or name == "obi_auth.cli"
+        or name.startswith("obi_auth.cli.")
+    )
+
+
+@contextmanager
+def _without_click():
+    """Temporarily pretend click (and the CLI module) are not installed."""
+    real_import = builtins.__import__
+    saved_modules = {
+        name: module for name, module in sys.modules.items() if _is_click_or_cli_module(name)
+    }
+
+    def guarded_import(name, *args, **kwargs):
+        if name == "click" or name.startswith("click."):
+            raise ImportError("No module named 'click'")
+        return real_import(name, *args, **kwargs)
+
+    builtins.__import__ = guarded_import
+    for module_name in saved_modules:
+        del sys.modules[module_name]
+    try:
+        yield
+    finally:
+        builtins.__import__ = real_import
+        for module_name in [name for name in sys.modules if _is_click_or_cli_module(name)]:
+            del sys.modules[module_name]
+        sys.modules.update(saved_modules)
+
+
 @pytest.fixture
 def cli_runner():
     return CliRunner()
@@ -22,46 +59,12 @@ def cli_runner():
 
 def test_missing_cli_extra_shows_install_hint():
     """Running the CLI entry without click should explain how to install the extra."""
-    import builtins
-    import importlib
+    with _without_click(), pytest.raises(SystemExit) as exc_info:
+        importlib.import_module("obi_auth.cli")
 
-    real_import = builtins.__import__
-    saved_modules = {
-        name: module
-        for name, module in sys.modules.items()
-        if name == "click"
-        or name.startswith("click.")
-        or name == "obi_auth.cli"
-        or name.startswith("obi_auth.cli.")
-    }
-
-    def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
-        if name == "click" or name.startswith("click."):
-            raise ImportError("No module named 'click'")
-        return real_import(name, globals, locals, fromlist, level)
-
-    try:
-        builtins.__import__ = guarded_import
-        for module_name in saved_modules:
-            del sys.modules[module_name]
-
-        with pytest.raises(SystemExit) as exc_info:
-            importlib.import_module("obi_auth.cli")
-
-        message = str(exc_info.value)
-        assert "pip install 'obi-auth[cli]'" in message
-        assert "optional dependencies" in message
-    finally:
-        builtins.__import__ = real_import
-        for module_name in list(sys.modules):
-            if (
-                module_name == "click"
-                or module_name.startswith("click.")
-                or module_name == "obi_auth.cli"
-                or module_name.startswith("obi_auth.cli.")
-            ):
-                del sys.modules[module_name]
-        sys.modules.update(saved_modules)
+    message = str(exc_info.value)
+    assert "pip install 'obi-auth[cli]'" in message
+    assert "optional dependencies" in message
 
 
 def test_help(cli_runner):
