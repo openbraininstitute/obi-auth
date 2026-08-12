@@ -5,6 +5,7 @@ import hashlib
 import logging
 import os
 import re
+import secrets
 import urllib.parse
 import webbrowser
 
@@ -27,8 +28,16 @@ def _generate_pkce_pair() -> tuple[str, str]:
     return code_verifier, code_challenge
 
 
+def _generate_state() -> str:
+    """Generate a cryptographically random OAuth state value."""
+    return secrets.token_urlsafe(32)
+
+
 def _build_auth_url(
-    code_challenge: str, redirect_uri: str, override_env: DeploymentEnvironment | None
+    code_challenge: str,
+    redirect_uri: str,
+    state: str,
+    override_env: DeploymentEnvironment | None,
 ) -> str:
     """Construct authentication url to open with a browser."""
     params = {
@@ -36,6 +45,7 @@ def _build_auth_url(
         "client_id": settings.KEYCLOAK_CLIENT_ID,
         "redirect_uri": redirect_uri,
         "scope": "openid",
+        "state": state,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
         "kc_idp_hint": "github",
@@ -52,7 +62,9 @@ def _authorize(
     server: AuthServer, code_challenge: str, override_env: DeploymentEnvironment | None
 ) -> str:
     """Ask user to login in order to retrieve a code to exchange for a token."""
-    auth_url = _build_auth_url(code_challenge, server.redirect_uri, override_env)
+    state = _generate_state()
+    server.expect_state(state)
+    auth_url = _build_auth_url(code_challenge, server.redirect_uri, state, override_env)
     L.info("Authentication url: %s", auth_url)
     webbrowser.open(auth_url)
     return server.wait_for_code()
