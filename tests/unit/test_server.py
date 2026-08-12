@@ -1,5 +1,3 @@
-import socket
-
 import httpx2
 import pytest
 
@@ -21,10 +19,6 @@ def running_server(server):
 
 def test_server(server):
     assert isinstance(server, AuthServer)
-
-
-def test_find_free_port():
-    assert AuthServer._find_free_port() > 0
 
 
 def test_redirect_uri(server):
@@ -54,17 +48,75 @@ def test_unknown_path_returns_not_found(running_server):
     assert response.json() == {"detail": "Not Found"}
 
 
-def test_run_port_unavailable(server, monkeypatch):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as taken:
-        taken.bind(("localhost", 0))
-        taken.listen(1)
-        monkeypatch.setattr(
-            AuthServer, "_find_free_port", staticmethod(lambda: taken.getsockname()[1])
-        )
+def test_run_assigns_port_from_listening_socket(running_server):
+    assert isinstance(running_server.port, int)
+    assert running_server.port > 0
+    assert running_server.redirect_uri == f"http://localhost:{running_server.port}/callback"
 
-        with pytest.raises(LocalServerError, match="Failed to listen on localhost:"):
-            with server.run():
-                pass
+    # The reported port must be the one actually accepting connections.
+    response = httpx2.get(f"http://localhost:{running_server.port}/callback")
+    assert response.status_code == 400
+
+
+def test_run_binds_localhost_only(running_server):
+    # Binding to localhost must not expose the callback on a non-loopback wildcard probe.
+    # Connecting via 127.0.0.1 (loopback) should work; that is what HOST resolves to.
+    response = httpx2.get(f"http://127.0.0.1:{running_server.port}/callback")
+    assert response.status_code == 400
+
+
+def test_concurrent_servers_get_distinct_ports():
+    server_a = AuthServer()
+    server_b = AuthServer()
+    with server_a.run() as a, server_b.run() as b:
+        assert a.port != b.port
+        assert httpx2.get(f"{a.redirect_uri}?code=a").status_code == 200
+        assert httpx2.get(f"{b.redirect_uri}?code=b").status_code == 200
+        assert a.wait_for_code(timeout=1) == "a"
+        assert b.wait_for_code(timeout=1) == "b"
+
+
+def test_run_stops_listening_after_context_exit(server):
+    with server.run() as local_server:
+        port = local_server.port
+        assert httpx2.get(f"http://localhost:{port}/callback").status_code == 400
+
+    with pytest.raises(httpx2.ConnectError):
+        httpx2.get(f"http://localhost:{port}/callback", timeout=0.5)
+
+
+def test_run_bind_failure(server, monkeypatch):
+    def boom(*_args, **_kwargs):
+        raise OSError("Address already in use")
+
+    monkeypatch.setattr(test_module, "ThreadingHTTPServer", boom)
+
+    with pytest.raises(LocalServerError, match="Failed to listen on localhost") as exc_info:
+        with server.run():
+            pass
+
+    assert isinstance(exc_info.value.__cause__, OSError)
+    assert server.port is None
+
+
+def test_run_does_not_probe_then_rebind(server, monkeypatch):
+    """Ensure we bind the listening server once (no separate free-port probe)."""
+    bind_calls: list[tuple[str, int]] = []
+    real_server = test_module.ThreadingHTTPServer
+
+    class TrackingServer(real_server):
+        def server_bind(self):
+            bind_calls.append(self.server_address)
+            return super().server_bind()
+
+    monkeypatch.setattr(test_module, "ThreadingHTTPServer", TrackingServer)
+
+    with server.run() as local_server:
+        assert len(bind_calls) == 1
+        assert bind_calls[0] == ("localhost", 0)
+        assert local_server.port > 0
+        # Port reported to callers must match the bound listening socket.
+        assert local_server.port != 0
 
 
 def test_wait_for_code_missing_code(server):
