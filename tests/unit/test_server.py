@@ -111,8 +111,10 @@ def test_concurrent_servers_get_distinct_ports():
     server_b = AuthServer()
     with server_a.run() as a, server_b.run() as b:
         assert a.port != b.port
-        assert httpx2.get(f"{a.redirect_uri}?code=a").status_code == 200
-        assert httpx2.get(f"{b.redirect_uri}?code=b").status_code == 200
+        a.expect_state("state-a")
+        b.expect_state("state-b")
+        assert httpx2.get(f"{a.redirect_uri}?code=a&state=state-a").status_code == 200
+        assert httpx2.get(f"{b.redirect_uri}?code=b&state=state-b").status_code == 200
         assert a.wait_for_code(timeout=1) == "a"
         assert b.wait_for_code(timeout=1) == "b"
 

@@ -113,13 +113,6 @@ class AuthServer:
         self.auth_state.error_description = None
         self.auth_state.event.clear()
 
-    @staticmethod
-    def _find_free_port() -> int:
-        """Bind to port 0 to let the OS select a free port, then return that port."""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("", 0))
-            return s.getsockname()[1]
-
     @contextlib.contextmanager
     def run(self) -> Iterator[Self]:
         """Start server in a background thread on an OS-assigned port.
