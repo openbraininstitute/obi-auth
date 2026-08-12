@@ -4,10 +4,9 @@ import contextlib
 import functools
 import json
 import logging
-import socket
 import threading
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Self
@@ -26,7 +25,7 @@ class AuthState:
     """Class to manage authentication state."""
 
     code: str | None = None
-    event: threading.Event = threading.Event()
+    event: threading.Event = field(default_factory=threading.Event)
 
 
 class _CallbackHandler(BaseHTTPRequestHandler):
@@ -87,23 +86,21 @@ class AuthServer:
             raise LocalServerError("Server has no port assigned.")
         return f"http://{HOST}:{self.port}{CALLBACK_PATH}"
 
-    @staticmethod
-    def _find_free_port() -> int:
-        """Bind to port 0 to let the OS select a free port, then return that port."""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("", 0))
-            return s.getsockname()[1]
-
     @contextlib.contextmanager
     def run(self) -> Iterator[Self]:
-        """Start server in a background thread."""
-        self.port = self._find_free_port()
+        """Start server in a background thread on an OS-assigned port.
+
+        The server binds once to port ``0`` so the kernel picks a free port on the
+        listening socket itself. This avoids the TOCTOU race of probing for a free
+        port, releasing it, then binding again.
+        """
         handler = functools.partial(_CallbackHandler, auth_state=self.auth_state)
         try:
-            server = ThreadingHTTPServer((HOST, self.port), handler)
+            server = ThreadingHTTPServer((HOST, 0), handler)
         except OSError as e:
-            raise LocalServerError(f"Failed to listen on {HOST}:{self.port}") from e
+            raise LocalServerError(f"Failed to listen on {HOST}") from e
 
+        self.port = server.server_address[1]
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         try:
             thread.start()
