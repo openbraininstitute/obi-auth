@@ -105,8 +105,6 @@ class AuthServer:
             raise LocalServerError("Server has no port assigned.")
         return f"http://{HOST}:{self.port}{CALLBACK_PATH}"
 
-<<<<<<< HEAD
-=======
     def expect_state(self, state: str) -> None:
         """Record the OAuth state that the callback must present."""
         self.auth_state.expected_state = state
@@ -122,7 +120,6 @@ class AuthServer:
             s.bind(("", 0))
             return s.getsockname()[1]
 
->>>>>>> 47bd31c (Require OAuth state on the PKCE local callback.)
     @contextlib.contextmanager
     def run(self) -> Iterator[Self]:
         """Start server in a background thread on an OS-assigned port.
