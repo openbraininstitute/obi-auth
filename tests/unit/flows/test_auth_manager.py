@@ -22,8 +22,11 @@ def test_auth_manager_mint_access_token__raises(httpx2_mock):
     httpx2_mock.post(
         settings.get_auth_manager_access_token_endpoint(override_env="staging")
     ).respond(json={"data": {}})
-    with pytest.raises(AuthFlowError, match="AuthManager unexpected payload"):
+    with pytest.raises(
+        AuthFlowError, match=r"AuthManager unexpected payload: \{'data': \{\}\}"
+    ) as exc_info:
         test_module.auth_manager_mint_access_token("persistent-id", environment="staging")
+    assert isinstance(exc_info.value.args[0], str)
 
 
 def test_auth_manager_exchange_token(httpx2_mock):
@@ -51,11 +54,14 @@ def test_auth_manager_exchange_token__exchange_raises(httpx2_mock):
     httpx2_mock.post(
         settings.get_auth_manager_token_exchange_endpoint(override_env="staging")
     ).respond(json={"data": {}})
-    with pytest.raises(AuthFlowError, match="AuthManager unexpected payload"):
+    with pytest.raises(
+        AuthFlowError, match=r"AuthManager unexpected payload: \{'data': \{\}\}"
+    ) as exc_info:
         test_module.auth_manager_exchange_token(
             KeycloakTokenInfo(access_token="public-token"),  # noqa: S106
             environment="staging",
         )
+    assert isinstance(exc_info.value.args[0], str)
 
 
 def test_auth_manager_exchange_token__mint_raises(httpx2_mock):

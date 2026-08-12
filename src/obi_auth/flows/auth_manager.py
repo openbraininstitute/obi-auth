@@ -29,7 +29,7 @@ def auth_manager_mint_access_token(
     )
 
     if not (access_token := mint_data.get("data", {}).get("access_token")):
-        msg = "AuthManager unexpected payload: {}", mint_data
+        msg = f"AuthManager unexpected payload: {mint_data}"
         L.error(msg)
         raise AuthFlowError(msg)
 
@@ -50,7 +50,7 @@ def auth_manager_exchange_token(
     )
 
     if not (token_id := exchange_data.get("data", {}).get("id")):
-        msg = "AuthManager unexpected payload: {}", exchange_data
+        msg = f"AuthManager unexpected payload: {exchange_data}"
         L.error(msg)
         raise AuthFlowError(msg)
 
