@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import Mock, patch
 
 from obi_auth.flows import pkce as test_module
@@ -36,18 +37,23 @@ def test_exchange_code_for_token(httpx2_mock):
 
 @patch("obi_auth.flows.pkce._generate_state", return_value="generated-state")
 @patch("obi_auth.flows.pkce.webbrowser")
-def test_authorize(mocked_webbrowser, mock_generate_state):
+def test_authorize(mocked_webbrowser, mock_generate_state, caplog):
     mock_server = Mock()
     mock_server.redirect_uri = "http://localhost:8000/callback"
     mock_server.wait_for_code.return_value = "mock-code"
 
-    res = test_module._authorize(
-        server=mock_server,
-        code_challenge="mock-challenge",
-        override_env=None,
-    )
+    with caplog.at_level(logging.INFO, logger="obi_auth.flows.pkce"):
+        res = test_module._authorize(
+            server=mock_server,
+            code_challenge="mock-challenge",
+            override_env=None,
+        )
     assert res == "mock-code"
     mock_server.expect_state.assert_called_once_with("generated-state")
     mocked_webbrowser.open.assert_called_once()
     opened_url = mocked_webbrowser.open.call_args.args[0]
     assert "state=generated-state" in opened_url
+    assert "Opening browser for authentication" in caplog.text
+    assert opened_url not in caplog.text
+    assert "generated-state" not in caplog.text
+    assert "mock-challenge" not in caplog.text

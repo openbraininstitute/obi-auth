@@ -10,6 +10,11 @@ obi-auth is a library for retrieving Keycloak access tokens interactively. It he
 
 > [!CAUTION]
 > obi-auth is designed to be used interactively and should not be used within a service or application.
+>
+> `get-token` prints a live access token to stdout. Prefer piping it into the command that needs it, and avoid pasting tokens into tickets, chat, or shell history. Prefer stdin over CLI arguments for `decode-token` (arguments can appear in `ps` and shell history):
+> `obi-auth get-token | obi-auth decode-token`
+>
+> Avoid `--log-level DEBUG` on shared machines. Callback request logs redact `code`, `state`, and `error_description`, but DEBUG still increases what is written to the console.
 
 ## Installation
 
@@ -81,10 +86,9 @@ obi-auth get-token --force-refresh
 
 ### `decode-token`
 
-Decode a JWT and print the payload as indented JSON. Pass the token as an argument or via stdin.
+Decode a JWT and print the payload as indented JSON. Prefer piping the token via stdin.
 
 ```sh
-obi-auth decode-token eyJhbGciOi...
 obi-auth get-token | obi-auth decode-token
 obi-auth get-token | obi-auth decode-token | jq -r '.sub'
 ```
