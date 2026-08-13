@@ -65,7 +65,7 @@ def _authorize(
     state = _generate_state()
     server.expect_state(state)
     auth_url = _build_auth_url(code_challenge, server.redirect_uri, state, override_env)
-    L.info("Authentication url: %s", auth_url)
+    L.info("Opening browser for authentication")
     webbrowser.open(auth_url)
     return server.wait_for_code()
 
