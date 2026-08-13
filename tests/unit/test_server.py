@@ -29,17 +29,58 @@ def test_redirect_uri(server):
 
 
 def test_wait_for_code(running_server):
+    running_server.expect_state("expected-state")
+
     with pytest.raises(LocalServerError, match="Timeout waiting for authorization code"):
         running_server.wait_for_code(timeout=0.1)
 
     response = httpx2.get(f"{running_server.redirect_uri}")
     assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid OAuth state"}
 
-    response = httpx2.get(f"{running_server.redirect_uri}?code=mock-code")
+    response = httpx2.get(f"{running_server.redirect_uri}?code=mock-code&state=wrong-state")
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid OAuth state"}
+
+    response = httpx2.get(f"{running_server.redirect_uri}?code=mock-code&state=expected-state")
     response.raise_for_status()
 
     res = running_server.wait_for_code()
     assert res == "mock-code"
+    assert running_server.auth_state.code is None
+
+
+def test_wait_for_code_oauth_error(running_server):
+    running_server.expect_state("expected-state")
+
+    response = httpx2.get(
+        f"{running_server.redirect_uri}"
+        "?error=access_denied&error_description=User+denied&state=expected-state"
+    )
+    assert response.status_code == 400
+    assert response.json() == {"detail": "User denied"}
+
+    with pytest.raises(LocalServerError, match="Authorization failed: User denied"):
+        running_server.wait_for_code(timeout=1)
+
+
+def test_wait_for_code_oauth_error_without_description(running_server):
+    running_server.expect_state("expected-state")
+
+    response = httpx2.get(f"{running_server.redirect_uri}?error=access_denied&state=expected-state")
+    assert response.status_code == 400
+    assert response.json() == {"detail": "access_denied"}
+
+    with pytest.raises(LocalServerError, match="Authorization failed: access_denied"):
+        running_server.wait_for_code(timeout=1)
+
+
+def test_callback_valid_state_missing_code(running_server):
+    running_server.expect_state("expected-state")
+
+    response = httpx2.get(f"{running_server.redirect_uri}?state=expected-state")
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Authorization code not found"}
 
 
 def test_unknown_path_returns_not_found(running_server):
@@ -70,8 +111,10 @@ def test_concurrent_servers_get_distinct_ports():
     server_b = AuthServer()
     with server_a.run() as a, server_b.run() as b:
         assert a.port != b.port
-        assert httpx2.get(f"{a.redirect_uri}?code=a").status_code == 200
-        assert httpx2.get(f"{b.redirect_uri}?code=b").status_code == 200
+        a.expect_state("state-a")
+        b.expect_state("state-b")
+        assert httpx2.get(f"{a.redirect_uri}?code=a&state=state-a").status_code == 200
+        assert httpx2.get(f"{b.redirect_uri}?code=b&state=state-b").status_code == 200
         assert a.wait_for_code(timeout=1) == "a"
         assert b.wait_for_code(timeout=1) == "b"
 
@@ -120,7 +163,14 @@ def test_run_does_not_probe_then_rebind(server, monkeypatch):
 
 
 def test_wait_for_code_missing_code(server):
+    server.expect_state("expected-state")
     server.auth_state.event.set()
 
     with pytest.raises(LocalServerError, match="Authorization code was not set"):
         server.wait_for_code()
+
+
+def test_callback_rejects_code_without_expected_state(running_server):
+    response = httpx2.get(f"{running_server.redirect_uri}?code=mock-code&state=any")
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid OAuth state"}

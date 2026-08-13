@@ -24,7 +24,10 @@ CALLBACK_PATH = "/callback"
 class AuthState:
     """Class to manage authentication state."""
 
+    expected_state: str | None = None
     code: str | None = None
+    error: str | None = None
+    error_description: str | None = None
     event: threading.Event = field(default_factory=threading.Event)
 
 
@@ -44,14 +47,30 @@ class _CallbackHandler(BaseHTTPRequestHandler):
             self._respond(HTTPStatus.NOT_FOUND, {"detail": "Not Found"})
             return
 
-        codes = parse_qs(url.query).get("code")
+        params = parse_qs(url.query)
+        state = (params.get("state") or [None])[0]
 
+        if self.auth_state.expected_state is None or state != self.auth_state.expected_state:
+            L.warning("Rejecting callback with missing or mismatched OAuth state")
+            self._respond(HTTPStatus.BAD_REQUEST, {"detail": "Invalid OAuth state"})
+            return
+
+        if errors := params.get("error"):
+            self.auth_state.error = errors[0]
+            descriptions = params.get("error_description")
+            self.auth_state.error_description = descriptions[0] if descriptions else None
+            self.auth_state.event.set()
+            detail = self.auth_state.error_description or self.auth_state.error
+            self._respond(HTTPStatus.BAD_REQUEST, {"detail": detail})
+            return
+
+        codes = params.get("code")
         if not codes:
             self._respond(HTTPStatus.BAD_REQUEST, {"detail": "Authorization code not found"})
             return
 
         self.auth_state.code = codes[0]
-        self.auth_state.event.set()  # Signal that we received the code
+        self.auth_state.event.set()
 
         self._respond(
             HTTPStatus.OK, {"message": "Authentication successful. You can close this window."}
@@ -86,6 +105,14 @@ class AuthServer:
             raise LocalServerError("Server has no port assigned.")
         return f"http://{HOST}:{self.port}{CALLBACK_PATH}"
 
+    def expect_state(self, state: str) -> None:
+        """Record the OAuth state that the callback must present."""
+        self.auth_state.expected_state = state
+        self.auth_state.code = None
+        self.auth_state.error = None
+        self.auth_state.error_description = None
+        self.auth_state.event.clear()
+
     @contextlib.contextmanager
     def run(self) -> Iterator[Self]:
         """Start server in a background thread on an OS-assigned port.
@@ -113,10 +140,15 @@ class AuthServer:
             server.server_close()
 
     def wait_for_code(self, timeout: int = settings.LOCAL_SERVER_TIMEOUT) -> str:
-        """Wait for code."""
+        """Wait for a validated authorization code, or raise on OAuth/timeout errors."""
         if self.auth_state.event.wait(timeout):
             self.auth_state.event.clear()
+            if self.auth_state.error is not None:
+                detail = self.auth_state.error_description or self.auth_state.error
+                raise LocalServerError(f"Authorization failed: {detail}")
             if self.auth_state.code is None:
                 raise LocalServerError("Authorization code was not set")
-            return self.auth_state.code
+            code = self.auth_state.code
+            self.auth_state.code = None
+            return code
         raise LocalServerError("Timeout waiting for authorization code")
