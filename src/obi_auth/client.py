@@ -9,9 +9,9 @@ from obi_auth.cache import AuthManagerTokenCache, TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
 from obi_auth.flows.auth_manager import (
-    auth_manager_exchange_for_offline_token,
     auth_manager_exchange_token,
     auth_manager_mint_access_token,
+    auth_manager_upgrade_to_offline_token,
 )
 from obi_auth.flows.daf import daf_authenticate
 from obi_auth.flows.pkce import pkce_authenticate
@@ -76,10 +76,9 @@ def get_token(
 
     if offline:
         token_provider = TokenProvider.auth_manager
-
-    storage_key = f"{auth_mode}_{token_provider}"
-    if offline:
-        storage_key = f"{storage_key}_offline"
+        storage_key = f"{auth_mode}_{token_provider}_offline"
+    else:
+        storage_key = f"{auth_mode}_{token_provider}"
 
     storage = Storage(
         config_dir=settings.config_dir,
@@ -184,11 +183,16 @@ def _get_auth_manager_token(
 
     auth_method = _get_auth_method(auth_mode)
     keycloak_token = auth_method(environment=environment)
-    exchange = auth_manager_exchange_for_offline_token if offline else auth_manager_exchange_token
     try:
-        token_info = exchange(keycloak_token, environment=environment)
+        token_info = auth_manager_exchange_token(keycloak_token, environment=environment)
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
+
+    if offline:
+        try:
+            token_info = auth_manager_upgrade_to_offline_token(token_info, environment=environment)
+        except AuthFlowError as e:
+            raise ClientError("Authentication process failed.") from e
 
     _AUTH_MANAGER_TOKEN_CACHE.set(token_info, storage)
     if token_info.access_token is None:

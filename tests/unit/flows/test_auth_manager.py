@@ -188,18 +188,12 @@ def test_auth_manager_request_and_await_offline_consent__timeout(
     "obi_auth.flows.auth_manager.auth_manager_get_offline_token_id",
     return_value="offline-id",
 )
-@patch(
-    "obi_auth.flows.auth_manager.auth_manager_exchange_token",
-    return_value=AuthManagerTokenInfo(
-        access_token="exchanged-at",  # noqa: S106
-        persistent_token_id="refresh-id",  # noqa: S106
-    ),
-)
-def test_auth_manager_exchange_for_offline_token__existing_offline(
-    mock_exchange, mock_get_id, mock_mint
-):
-    res = test_module.auth_manager_exchange_for_offline_token(
-        KeycloakTokenInfo(access_token="public-token"),  # noqa: S106
+def test_auth_manager_upgrade_to_offline_token__existing_offline(mock_get_id, mock_mint):
+    res = test_module.auth_manager_upgrade_to_offline_token(
+        AuthManagerTokenInfo(
+            access_token="exchanged-at",  # noqa: S106
+            persistent_token_id="refresh-id",  # noqa: S106
+        ),
         environment="staging",
     )
     assert res.access_token == "offline-at"  # noqa: S105
@@ -220,18 +214,12 @@ def test_auth_manager_exchange_for_offline_token__existing_offline(
     return_value="offline-id",
 )
 @patch("obi_auth.flows.auth_manager.auth_manager_get_offline_token_id", return_value=None)
-@patch(
-    "obi_auth.flows.auth_manager.auth_manager_exchange_token",
-    return_value=AuthManagerTokenInfo(
-        access_token="exchanged-at",  # noqa: S106
-        persistent_token_id="refresh-id",  # noqa: S106
-    ),
-)
-def test_auth_manager_exchange_for_offline_token__needs_consent(
-    mock_exchange, mock_get_id, mock_await, mock_mint
-):
-    res = test_module.auth_manager_exchange_for_offline_token(
-        KeycloakTokenInfo(access_token="public-token"),  # noqa: S106
+def test_auth_manager_upgrade_to_offline_token__needs_consent(mock_get_id, mock_await, mock_mint):
+    res = test_module.auth_manager_upgrade_to_offline_token(
+        AuthManagerTokenInfo(
+            access_token="exchanged-at",  # noqa: S106
+            persistent_token_id="refresh-id",  # noqa: S106
+        ),
         environment="staging",
     )
     assert res.access_token == "offline-at"  # noqa: S105
@@ -239,17 +227,13 @@ def test_auth_manager_exchange_for_offline_token__needs_consent(
     mock_mint.assert_called_once_with("offline-id", environment="staging")
 
 
-@patch(
-    "obi_auth.flows.auth_manager.auth_manager_exchange_token",
-    return_value=AuthManagerTokenInfo(
-        access_token=None,
-        persistent_token_id="refresh-id",  # noqa: S106
-    ),
-)
-def test_auth_manager_exchange_for_offline_token__no_access_token(mock_exchange):
+def test_auth_manager_upgrade_to_offline_token__no_access_token():
     with pytest.raises(AuthFlowError, match="did not return an access token"):
-        test_module.auth_manager_exchange_for_offline_token(
-            KeycloakTokenInfo(access_token="public-token"),  # noqa: S106
+        test_module.auth_manager_upgrade_to_offline_token(
+            AuthManagerTokenInfo(
+                access_token=None,
+                persistent_token_id="refresh-id",  # noqa: S106
+            ),
             environment="staging",
         )
 

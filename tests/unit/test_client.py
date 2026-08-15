@@ -43,16 +43,25 @@ def test_get_token_auth_manager(mock_cache, mock_method, mock_auth_manager):
 
 
 @patch(
-    "obi_auth.client.auth_manager_exchange_for_offline_token",
+    "obi_auth.client.auth_manager_upgrade_to_offline_token",
     return_value=AuthManagerTokenInfo(
         access_token="offline-token",  # noqa: S106
         persistent_token_id="offline-id",  # noqa: S106
     ),
 )
+@patch(
+    "obi_auth.client.auth_manager_exchange_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="session-token",  # noqa: S106
+        persistent_token_id="session-id",  # noqa: S106
+    ),
+)
 @patch("obi_auth.client._get_auth_method")
 @patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
 @patch("obi_auth.client.Storage")
-def test_get_token_auth_manager_offline(mock_storage, mock_cache, mock_method, mock_offline):
+def test_get_token_auth_manager_offline(
+    mock_storage, mock_cache, mock_method, mock_exchange, mock_upgrade
+):
     mock_cache.get.return_value = None
     keycloak_token = KeycloakTokenInfo(access_token="keycloak-token")  # noqa: S106
     mock_method.return_value = lambda *args, **kwargs: keycloak_token
@@ -61,41 +70,60 @@ def test_get_token_auth_manager_offline(mock_storage, mock_cache, mock_method, m
         test_module.get_token(token_provider=TokenProvider.auth_manager, offline=True)
         == "offline-token"
     )
-    mock_offline.assert_called_once()
-    assert mock_offline.call_args.args[0] == keycloak_token
+    mock_exchange.assert_called_once()
+    assert mock_exchange.call_args.args[0] == keycloak_token
+    mock_upgrade.assert_called_once()
+    assert mock_upgrade.call_args.args[0].access_token == "session-token"  # noqa: S105
     assert mock_storage.call_args.kwargs["key"] == "pkce_auth_manager_offline"
     mock_cache.set.assert_called_once()
 
 
 @patch(
-    "obi_auth.client.auth_manager_exchange_for_offline_token",
+    "obi_auth.client.auth_manager_upgrade_to_offline_token",
     return_value=AuthManagerTokenInfo(
         access_token="offline-token",  # noqa: S106
         persistent_token_id="offline-id",  # noqa: S106
+    ),
+)
+@patch(
+    "obi_auth.client.auth_manager_exchange_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="session-token",  # noqa: S106
+        persistent_token_id="session-id",  # noqa: S106
     ),
 )
 @patch("obi_auth.client._get_auth_method")
 @patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
 @patch("obi_auth.client.Storage")
 def test_get_token_offline_implies_auth_manager(
-    mock_storage, mock_cache, mock_method, mock_offline
+    mock_storage, mock_cache, mock_method, mock_exchange, mock_upgrade
 ):
     mock_cache.get.return_value = None
     keycloak_token = KeycloakTokenInfo(access_token="keycloak-token")  # noqa: S106
     mock_method.return_value = lambda *args, **kwargs: keycloak_token
 
     assert test_module.get_token(offline=True) == "offline-token"
-    mock_offline.assert_called_once()
+    mock_exchange.assert_called_once()
+    mock_upgrade.assert_called_once()
     assert mock_storage.call_args.kwargs["key"] == "pkce_auth_manager_offline"
 
 
 @patch(
-    "obi_auth.client.auth_manager_exchange_for_offline_token",
+    "obi_auth.client.auth_manager_upgrade_to_offline_token",
     side_effect=exception.AuthFlowError(),
+)
+@patch(
+    "obi_auth.client.auth_manager_exchange_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="session-token",  # noqa: S106
+        persistent_token_id="session-id",  # noqa: S106
+    ),
 )
 @patch("obi_auth.client._get_auth_method")
 @patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
-def test_get_token_auth_manager_offline_raises(mock_cache, mock_method, mock_offline):
+def test_get_token_auth_manager_offline_upgrade_raises(
+    mock_cache, mock_method, mock_exchange, mock_upgrade
+):
     mock_cache.get.return_value = None
     mock_method.return_value = lambda *args, **kwargs: KeycloakTokenInfo(
         access_token="keycloak-token"  # noqa: S106
@@ -104,18 +132,52 @@ def test_get_token_auth_manager_offline_raises(mock_cache, mock_method, mock_off
     with pytest.raises(exception.ClientError, match="Authentication process failed."):
         test_module.get_token(token_provider=TokenProvider.auth_manager, offline=True)
 
+    mock_exchange.assert_called_once()
+    mock_upgrade.assert_called_once()
+    mock_cache.set.assert_not_called()
 
-@patch("obi_auth.client.auth_manager_exchange_for_offline_token")
+
+@patch("obi_auth.client.auth_manager_upgrade_to_offline_token")
+@patch(
+    "obi_auth.client.auth_manager_exchange_token",
+    side_effect=exception.AuthFlowError(),
+)
 @patch("obi_auth.client._get_auth_method")
 @patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
-def test_get_token_auth_manager_offline_returns_none_access_token(
-    mock_cache, mock_method, mock_offline
+def test_get_token_auth_manager_offline_exchange_raises(
+    mock_cache, mock_method, mock_exchange, mock_upgrade
 ):
     mock_cache.get.return_value = None
     mock_method.return_value = lambda *args, **kwargs: KeycloakTokenInfo(
         access_token="keycloak-token"  # noqa: S106
     )
-    mock_offline.return_value = AuthManagerTokenInfo(
+
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module.get_token(token_provider=TokenProvider.auth_manager, offline=True)
+
+    mock_exchange.assert_called_once()
+    mock_upgrade.assert_not_called()
+    mock_cache.set.assert_not_called()
+
+
+@patch("obi_auth.client.auth_manager_upgrade_to_offline_token")
+@patch(
+    "obi_auth.client.auth_manager_exchange_token",
+    return_value=AuthManagerTokenInfo(
+        access_token="session-token",  # noqa: S106
+        persistent_token_id="session-id",  # noqa: S106
+    ),
+)
+@patch("obi_auth.client._get_auth_method")
+@patch("obi_auth.client._AUTH_MANAGER_TOKEN_CACHE")
+def test_get_token_auth_manager_offline_returns_none_access_token(
+    mock_cache, mock_method, mock_exchange, mock_upgrade
+):
+    mock_cache.get.return_value = None
+    mock_method.return_value = lambda *args, **kwargs: KeycloakTokenInfo(
+        access_token="keycloak-token"  # noqa: S106
+    )
+    mock_upgrade.return_value = AuthManagerTokenInfo(
         access_token=None,
         persistent_token_id="offline-id",  # noqa: S106
     )

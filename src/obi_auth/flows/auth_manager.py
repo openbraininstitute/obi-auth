@@ -60,10 +60,10 @@ def auth_manager_mint_access_token(
     return AuthManagerTokenInfo(access_token=access_token, persistent_token_id=persistent_token_id)
 
 
-def auth_manager_exchange_token(
+def _auth_manager_exchange_persistent_id(
     token_info: KeycloakTokenInfo, *, environment: DeploymentEnvironment
-) -> AuthManagerTokenInfo:
-    """Exchange a Keycloak access token and mint an auth-manager access token."""
+) -> str:
+    """Exchange a Keycloak access token for a session vault persistent id."""
     exchange_data = (
         httpx2.post(
             url=settings.get_auth_manager_token_exchange_endpoint(override_env=environment),
@@ -78,21 +78,28 @@ def auth_manager_exchange_token(
         L.error(msg)
         raise AuthFlowError(msg)
 
+    return str(token_id)
+
+
+def auth_manager_exchange_token(
+    token_info: KeycloakTokenInfo, *, environment: DeploymentEnvironment
+) -> AuthManagerTokenInfo:
+    """Exchange a Keycloak access token and mint an auth-manager access token."""
+    token_id = _auth_manager_exchange_persistent_id(token_info, environment=environment)
     return auth_manager_mint_access_token(token_id, environment=environment)
 
 
-def auth_manager_exchange_for_offline_token(
-    token_info: KeycloakTokenInfo, *, environment: DeploymentEnvironment
+def auth_manager_upgrade_to_offline_token(
+    token_info: AuthManagerTokenInfo, *, environment: DeploymentEnvironment
 ) -> AuthManagerTokenInfo:
-    """Token-exchange, then obtain an offline vault id (consent if needed) and mint."""
-    exchanged = auth_manager_exchange_token(token_info, environment=environment)
-    if exchanged.access_token is None:
+    """Upgrade a session vault access token to an offline vault token (consent if needed)."""
+    if token_info.access_token is None:
         raise AuthFlowError("AuthManager exchange did not return an access token")
 
-    offline_id = auth_manager_get_offline_token_id(exchanged.access_token, environment=environment)
+    offline_id = auth_manager_get_offline_token_id(token_info.access_token, environment=environment)
     if offline_id is None:
         offline_id = auth_manager_request_and_await_offline_consent(
-            exchanged.access_token, environment=environment
+            token_info.access_token, environment=environment
         )
 
     return auth_manager_mint_access_token(offline_id, environment=environment)
