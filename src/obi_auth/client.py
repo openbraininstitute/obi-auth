@@ -9,6 +9,7 @@ from obi_auth.cache import AuthManagerTokenCache, TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
 from obi_auth.flows.auth_manager import (
+    auth_manager_exchange_for_offline_token,
     auth_manager_exchange_token,
     auth_manager_mint_access_token,
 )
@@ -39,6 +40,7 @@ def get_token(
     token_provider: TokenProvider = TokenProvider.keycloak,
     force_refresh: bool = False,
     persistent_token_id: str | None = None,
+    offline: bool = False,
 ) -> str:
     """Get token.
 
@@ -53,6 +55,9 @@ def get_token(
             Ignored when ``auth_mode`` is ``persistent_token``.
         force_refresh: Clear the cached token and authenticate again.
         persistent_token_id: Required when ``auth_mode`` is ``persistent_token``.
+        offline: Token-exchange then upgrade to an offline vault token (Keycloak
+            ``offline_access`` consent) before minting. Implies
+            ``token_provider=auth_manager``. Ignored for ``persistent_token``.
     """
     auth_mode = AuthMode(auth_mode)
     token_provider = TokenProvider(token_provider)
@@ -69,10 +74,17 @@ def get_token(
             force_refresh=force_refresh,
         )
 
+    if offline:
+        token_provider = TokenProvider.auth_manager
+
+    storage_key = f"{auth_mode}_{token_provider}"
+    if offline:
+        storage_key = f"{storage_key}_offline"
+
     storage = Storage(
         config_dir=settings.config_dir,
         environment=environment,
-        key=f"{auth_mode}_{token_provider}",
+        key=storage_key,
     )
 
     if token_provider == TokenProvider.auth_manager:
@@ -81,6 +93,7 @@ def get_token(
             environment=environment,
             auth_mode=auth_mode,
             force_refresh=force_refresh,
+            offline=offline,
         )
     return _get_keycloak_token(
         storage=storage,
@@ -153,6 +166,7 @@ def _get_auth_manager_token(
     environment: DeploymentEnvironment,
     auth_mode: AuthMode,
     force_refresh: bool,
+    offline: bool = False,
 ) -> str:
     if force_refresh:
         L.debug("Forcing token refresh, clearing cached token")
@@ -170,8 +184,9 @@ def _get_auth_manager_token(
 
     auth_method = _get_auth_method(auth_mode)
     keycloak_token = auth_method(environment=environment)
+    exchange = auth_manager_exchange_for_offline_token if offline else auth_manager_exchange_token
     try:
-        token_info = auth_manager_exchange_token(keycloak_token, environment=environment)
+        token_info = exchange(keycloak_token, environment=environment)
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
 

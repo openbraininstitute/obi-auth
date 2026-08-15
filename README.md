@@ -47,6 +47,12 @@ from obi_auth import get_token
 access_token = get_token(environment="staging")
 access_token = get_token(environment="staging", token_provider="auth_manager")
 
+# Offline vault (implies auth_manager; Keycloak offline_access consent), then mint:
+access_token = get_token(
+    environment="staging",
+    offline=True,
+)
+
 # Mint from an existing auth-manager persistent id (e.g. obi-one launch scripts):
 access_token = get_token(
     environment="staging",
@@ -67,6 +73,7 @@ Authenticate and print the access token to stdout. Output is a single token stri
 obi-auth get-token
 obi-auth get-token -e production -m daf
 obi-auth get-token -p auth_manager
+obi-auth get-token --offline
 obi-auth get-token -m persistent_token --persistent-token-id <uuid>
 obi-auth get-token --force-refresh
 ```
@@ -77,6 +84,7 @@ obi-auth get-token --force-refresh
 | `-m`, `--auth-mode` | Authentication method: `pkce` (default), `daf`, or `persistent_token` |
 | `-p`, `--token-provider` | Token issuer: `keycloak` (default) or `auth_manager` |
 | `--persistent-token-id` | Persistent token id (required when `--auth-mode persistent_token`) |
+| `--offline` | Offline vault flow (implies `-p auth_manager`): exchange, consent, mint |
 | `--force-refresh` | Clear the cached token and authenticate again |
 
 ### `decode-token`
@@ -86,6 +94,7 @@ Decode a JWT and print the payload as indented JSON. Pass the token as an argume
 ```sh
 obi-auth decode-token eyJhbGciOi...
 obi-auth get-token | obi-auth decode-token
+obi-auth get-token --offline | obi-auth decode-token
 obi-auth get-token | obi-auth decode-token | jq -r '.sub'
 ```
 
@@ -97,6 +106,7 @@ Authenticate, fetch user info from Keycloak, and print the result as indented JS
 obi-auth get-user-info
 obi-auth get-user-info -e production -m daf
 obi-auth get-user-info -p auth_manager
+obi-auth get-user-info --offline
 obi-auth get-user-info --force-refresh
 obi-auth get-user-info | jq -r '.sub'
 ```
@@ -107,6 +117,7 @@ obi-auth get-user-info | jq -r '.sub'
 | `-m`, `--auth-mode` | Authentication method: `pkce` (default), `daf`, or `persistent_token` |
 | `-p`, `--token-provider` | Token issuer: `keycloak` (default) or `auth_manager` |
 | `--persistent-token-id` | Persistent token id (required when `--auth-mode persistent_token`) |
+| `--offline` | Offline vault flow (implies `-p auth_manager`): exchange, consent, mint |
 | `--force-refresh` | Clear the cached token and authenticate again |
 
 ### Global options

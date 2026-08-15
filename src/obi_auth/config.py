@@ -38,6 +38,10 @@ class Settings(BaseSettings):
 
     LOCAL_SERVER_TIMEOUT: int = 60
 
+    # Offline consent: poll /offline-token-id until the user finishes Keycloak consent
+    OFFLINE_CONSENT_TIMEOUT_SECONDS: int = 300
+    OFFLINE_CONSENT_POLL_INTERVAL_SECONDS: float = 2.0
+
     def _get_domain_url(self, override_env: DeploymentEnvironment) -> str:
         """Return domain url based on environment."""
         match env := override_env or self.KEYCLOAK_ENV:
@@ -95,6 +99,20 @@ class Settings(BaseSettings):
         """Return auth-manager token exchange endpoint."""
         base_url = self.get_auth_manager_url(override_env=override_env)
         return f"{base_url}/token-exchange"
+
+    def get_auth_manager_offline_token_endpoint(
+        self, override_env: DeploymentEnvironment | None = None
+    ) -> str:
+        """Return auth-manager offline-token consent endpoint."""
+        base_url = self.get_auth_manager_url(override_env=override_env)
+        return f"{base_url}/offline-token"
+
+    def get_auth_manager_offline_token_id_endpoint(
+        self, override_env: DeploymentEnvironment | None = None
+    ) -> str:
+        """Return auth-manager offline-token-id endpoint."""
+        base_url = self.get_auth_manager_url(override_env=override_env)
+        return f"{base_url}/offline-token-id"
 
 
 settings = Settings()
