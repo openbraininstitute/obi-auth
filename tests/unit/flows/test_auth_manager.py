@@ -202,8 +202,8 @@ def test_auth_manager_exchange_for_offline_token__existing_offline(
         KeycloakTokenInfo(access_token="public-token"),  # noqa: S106
         environment="staging",
     )
-    assert res.access_token == "offline-at"
-    assert res.persistent_token_id == "offline-id"
+    assert res.access_token == "offline-at"  # noqa: S105
+    assert res.persistent_token_id == "offline-id"  # noqa: S105
     mock_get_id.assert_called_once_with("exchanged-at", environment="staging")
     mock_mint.assert_called_once_with("offline-id", environment="staging")
 
@@ -234,7 +234,7 @@ def test_auth_manager_exchange_for_offline_token__needs_consent(
         KeycloakTokenInfo(access_token="public-token"),  # noqa: S106
         environment="staging",
     )
-    assert res.access_token == "offline-at"
+    assert res.access_token == "offline-at"  # noqa: S105
     mock_await.assert_called_once_with("exchanged-at", environment="staging")
     mock_mint.assert_called_once_with("offline-id", environment="staging")
 

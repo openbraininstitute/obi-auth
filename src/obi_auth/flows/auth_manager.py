@@ -4,6 +4,7 @@ import logging
 import sys
 import webbrowser
 from time import monotonic, sleep
+from typing import TypedDict
 
 import httpx2
 
@@ -18,7 +19,16 @@ from obi_auth.util import is_running_in_notebook
 
 L = logging.getLogger(__name__)
 
-_OFFLINE_CONSENT_MESSAGE = {
+
+class OfflineConsentMessageData(TypedDict):
+    """Data structure for offline consent message content."""
+
+    title: str
+    steps: list[str]
+    url: str
+
+
+_OFFLINE_CONSENT_MESSAGE: OfflineConsentMessageData = {
     "title": "Offline Access Consent Required\n\n",
     "steps": [
         "1. Open the consent URL below\n",
