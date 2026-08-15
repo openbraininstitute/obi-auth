@@ -11,6 +11,10 @@ obi-auth is a library for retrieving Keycloak access tokens interactively. It he
 > [!CAUTION]
 > obi-auth is designed to be used interactively and should not be used within a service or application.
 
+## Documentation
+
+Detailed flow docs (vault ids, lifecycles, HTTP calls, diagrams, and `get_token()` examples) live in **[docs/](docs/README.md)**.
+
 ## Installation
 
 ### Basic Installation
