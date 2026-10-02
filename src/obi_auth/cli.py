@@ -61,6 +61,12 @@ def main(log_level: str):
     help="Persistent token id (required when auth-mode is persistent_token)",
 )
 @click.option(
+    "--offline",
+    help="Exchange then upgrade to an offline vault token (implies -p auth_manager)",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
@@ -71,6 +77,7 @@ def get_token(
     auth_mode: AuthMode,
     token_provider: TokenProvider,
     persistent_token_id: str | None,
+    offline: bool,
     force_refresh: bool,
 ):
     """Authenticate, print the token to stdout."""
@@ -79,6 +86,7 @@ def get_token(
         auth_mode=auth_mode,
         token_provider=token_provider,
         persistent_token_id=persistent_token_id,
+        offline=offline,
         force_refresh=force_refresh,
     )
     print(access_token)
@@ -128,6 +136,12 @@ def decode_token(access_token: str | None):
     help="Persistent token id (required when auth-mode is persistent_token)",
 )
 @click.option(
+    "--offline",
+    help="Exchange then upgrade to an offline vault token (implies -p auth_manager)",
+    is_flag=True,
+    default=False,
+)
+@click.option(
     "--force-refresh",
     help="Clear the cached token and authenticate again",
     is_flag=True,
@@ -138,6 +152,7 @@ def get_user_info(
     auth_mode: AuthMode,
     token_provider: TokenProvider,
     persistent_token_id: str | None,
+    offline: bool,
     force_refresh: bool,
 ):
     """Show user info information."""
@@ -146,6 +161,7 @@ def get_user_info(
         auth_mode=auth_mode,
         token_provider=token_provider,
         persistent_token_id=persistent_token_id,
+        offline=offline,
         force_refresh=force_refresh,
     )
     print(json.dumps(obi_auth.get_user_info(access_token, environment=environment), indent=2))

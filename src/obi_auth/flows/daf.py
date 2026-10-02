@@ -1,6 +1,7 @@
 """Authorization flow module."""
 
 import logging
+import sys
 from time import sleep
 from typing import TypedDict
 
@@ -41,10 +42,14 @@ def daf_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenInfo
     _display_auth_prompt(device_info)
 
     if token := _poll_device_code_token(device_info, environment):
-        print("\r   ✓ Authentication completed successfully!", flush=True)
+        print(
+            "\r   ✓ Authentication completed successfully!",
+            flush=True,
+            file=sys.stderr,
+        )
         return KeycloakTokenInfo(access_token=token)
 
-    print("\r   ✗ Authentication failed - timeout reached", flush=True)
+    print("\r   ✗ Authentication failed - timeout reached", flush=True, file=sys.stderr)
     raise AuthFlowError("Polling using device code reached max retries.")
 
 
@@ -121,7 +126,7 @@ def _display_notebook_auth_prompt(device_info: AuthDeviceInfo) -> None:
         link_style = Style(color="deep_sky_blue4", underline=True, link=verification_url)
         auth_text.append(f"{verification_url}", style=link_style)
 
-        Console().print(auth_text)
+        Console(stderr=True).print(auth_text)
 
     except Exception as e:
         L.warning(f"Rich is not supported, using fallback: {e}")
@@ -129,11 +134,11 @@ def _display_notebook_auth_prompt(device_info: AuthDeviceInfo) -> None:
 
 
 def _display_terminal_auth_prompt(device_info: AuthDeviceInfo) -> None:
-    """Display a simple authentication prompt for terminal usage."""
-    print(AUTHENTICATION_MESSAGE_DATA["title"])
+    """Display a simple authentication prompt on stderr (stdout stays token-only)."""
+    print(AUTHENTICATION_MESSAGE_DATA["title"], file=sys.stderr)
 
     for step in AUTHENTICATION_MESSAGE_DATA["steps"]:
-        print(step)
+        print(step, file=sys.stderr)
 
-    print(AUTHENTICATION_MESSAGE_DATA["url"])
-    print(f"   {device_info.verification_uri_complete}")
+    print(AUTHENTICATION_MESSAGE_DATA["url"], file=sys.stderr)
+    print(f"   {device_info.verification_uri_complete}", file=sys.stderr)

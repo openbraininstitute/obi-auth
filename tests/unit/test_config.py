@@ -118,3 +118,19 @@ def test_get_auth_manager_token_exchange_endpoint(settings):
 
     res = settings.get_auth_manager_token_exchange_endpoint(override_env="production")
     assert res == f"{PROD_OBI_URL}/api/auth-manager/v1/token-exchange"
+
+
+def test_get_auth_manager_offline_token_endpoint(settings):
+    res = settings.get_auth_manager_offline_token_endpoint()
+    assert res == f"{STAGING_OBI_URL}/api/auth-manager/v1/offline-token"
+
+    res = settings.get_auth_manager_offline_token_endpoint(override_env="production")
+    assert res == f"{PROD_OBI_URL}/api/auth-manager/v1/offline-token"
+
+
+def test_get_auth_manager_offline_token_id_endpoint(settings):
+    res = settings.get_auth_manager_offline_token_id_endpoint()
+    assert res == f"{STAGING_OBI_URL}/api/auth-manager/v1/offline-token-id"
+
+    res = settings.get_auth_manager_offline_token_id_endpoint(override_env="production")
+    assert res == f"{PROD_OBI_URL}/api/auth-manager/v1/offline-token-id"

@@ -1,3 +1,4 @@
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -37,7 +38,11 @@ def test_daf_authenticate_success(
     assert result == KeycloakTokenInfo(access_token="test_token")  # noqa: S106
     mock_display_prompt.assert_called_once_with(device_info)
     mock_poll.assert_called_once_with(device_info, DeploymentEnvironment.staging)
-    mock_print.assert_called_with("\r   ✓ Authentication completed successfully!", flush=True)
+    mock_print.assert_called_with(
+        "\r   ✓ Authentication completed successfully!",
+        flush=True,
+        file=sys.stderr,
+    )
 
 
 @patch("obi_auth.flows.daf._poll_device_code_token")
@@ -56,7 +61,11 @@ def test_daf_authenticate_failure(
 
     mock_display_prompt.assert_called_once_with(device_info)
     mock_poll.assert_called_once_with(device_info, DeploymentEnvironment.staging)
-    mock_print.assert_called_with("\r   ✗ Authentication failed - timeout reached", flush=True)
+    mock_print.assert_called_with(
+        "\r   ✗ Authentication failed - timeout reached",
+        flush=True,
+        file=sys.stderr,
+    )
 
 
 def test_device_code_token(httpx2_mock, device_info):
@@ -147,6 +156,7 @@ def test_display_notebook_auth_prompt_success(mock_console, device_info):
 
     test_module._display_notebook_auth_prompt(device_info)
 
+    mock_console.assert_called_once_with(stderr=True)
     mock_console_instance.print.assert_called_once()
 
 
@@ -173,9 +183,9 @@ def test_get_device_url_code(mock_post, device_info):
 
 @patch("builtins.print")
 def test_display_terminal_auth_prompt(mock_print, device_info):
-    """Test _display_terminal_auth_prompt function."""
+    """Test _display_terminal_auth_prompt writes prompts to stderr."""
     test_module._display_terminal_auth_prompt(device_info)
 
-    # Verify print was called for each part of the message
     # title + 3 steps + url + verification_uri_complete = 6 calls
     assert mock_print.call_count == 6
+    assert all(call.kwargs.get("file") is sys.stderr for call in mock_print.call_args_list)

@@ -85,6 +85,7 @@ def test_get_token(mock_token, cli_runner):
         auth_mode=AuthMode.daf,
         token_provider=TokenProvider.keycloak,
         persistent_token_id=None,
+        offline=False,
         force_refresh=False,
     )
 
@@ -96,6 +97,7 @@ def test_get_token(mock_token, cli_runner):
         auth_mode=AuthMode.pkce,
         token_provider=TokenProvider.keycloak,
         persistent_token_id=None,
+        offline=False,
         force_refresh=False,
     )
 
@@ -106,6 +108,7 @@ def test_get_token(mock_token, cli_runner):
         auth_mode=AuthMode.pkce,
         token_provider=TokenProvider.auth_manager,
         persistent_token_id=None,
+        offline=False,
         force_refresh=False,
     )
 
@@ -118,6 +121,29 @@ def test_get_token(mock_token, cli_runner):
         auth_mode=AuthMode.persistent_token,
         token_provider=TokenProvider.keycloak,
         persistent_token_id="pt-1",  # noqa: S106
+        offline=False,
+        force_refresh=False,
+    )
+
+    result = cli_runner.invoke(main, ["get-token", "-p", "auth_manager", "--offline"])
+    assert result.exit_code == 0
+    mock_token.assert_called_with(
+        environment=DeploymentEnvironment.staging,
+        auth_mode=AuthMode.pkce,
+        token_provider=TokenProvider.auth_manager,
+        persistent_token_id=None,
+        offline=True,
+        force_refresh=False,
+    )
+
+    result = cli_runner.invoke(main, ["get-token", "--offline"])
+    assert result.exit_code == 0
+    mock_token.assert_called_with(
+        environment=DeploymentEnvironment.staging,
+        auth_mode=AuthMode.pkce,
+        token_provider=TokenProvider.keycloak,
+        persistent_token_id=None,
+        offline=True,
         force_refresh=False,
     )
 
@@ -136,6 +162,7 @@ def test_get_token_force_refresh(mock_token, cli_runner):
         auth_mode=AuthMode.daf,
         token_provider=TokenProvider.keycloak,
         persistent_token_id=None,
+        offline=False,
         force_refresh=True,
     )
 
@@ -199,6 +226,7 @@ def test_get_user_info(mock_token, mock_user_info, cli_runner):
         auth_mode=AuthMode.daf,
         token_provider=TokenProvider.keycloak,
         persistent_token_id=None,
+        offline=False,
         force_refresh=False,
     )
     mock_user_info.assert_called_once_with(
@@ -222,6 +250,7 @@ def test_get_user_info_defaults(mock_token, mock_user_info, cli_runner):
         auth_mode=AuthMode.pkce,
         token_provider=TokenProvider.keycloak,
         persistent_token_id=None,
+        offline=False,
         force_refresh=False,
     )
     mock_user_info.assert_called_once_with(
@@ -245,6 +274,7 @@ def test_get_user_info_force_refresh(mock_token, mock_user_info, cli_runner):
         auth_mode=AuthMode.pkce,
         token_provider=TokenProvider.keycloak,
         persistent_token_id=None,
+        offline=False,
         force_refresh=True,
     )
     mock_user_info.assert_called_once_with("fresh-token", environment=DeploymentEnvironment.staging)
