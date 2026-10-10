@@ -1,3 +1,5 @@
+import logging
+
 import httpx2
 import pytest
 
@@ -174,3 +176,38 @@ def test_callback_rejects_code_without_expected_state(running_server):
     response = httpx2.get(f"{running_server.redirect_uri}?code=mock-code&state=any")
     assert response.status_code == 400
     assert response.json() == {"detail": "Invalid OAuth state"}
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        (
+            '"GET /callback?code=secret-code&state=csrf HTTP/1.1" 200 -',
+            '"GET /callback?code=[redacted]&state=[redacted] HTTP/1.1" 200 -',
+        ),
+        (
+            '"GET /callback?error=access_denied'
+            '&error_description=User+denied&state=csrf HTTP/1.1" 400 -',
+            '"GET /callback?error=access_denied'
+            '&error_description=[redacted]&state=[redacted] HTTP/1.1" 400 -',
+        ),
+        (
+            '"GET /unknown HTTP/1.1" 404 -',
+            '"GET /unknown HTTP/1.1" 404 -',
+        ),
+    ],
+)
+def test_redact_request_log(message, expected):
+    assert test_module._redact_request_log(message) == expected
+
+
+def test_callback_debug_log_redacts_query(running_server, caplog):
+    running_server.expect_state("expected-state")
+    with caplog.at_level(logging.DEBUG, logger="obi_auth.server"):
+        httpx2.get(f"{running_server.redirect_uri}?code=secret-code&state=expected-state")
+
+    joined = "\n".join(caplog.messages)
+    assert "secret-code" not in joined
+    assert "expected-state" not in joined
+    assert "code=[redacted]" in joined
+    assert "state=[redacted]" in joined

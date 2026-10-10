@@ -4,6 +4,7 @@ import contextlib
 import functools
 import json
 import logging
+import re
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -18,6 +19,16 @@ from obi_auth.exception import LocalServerError
 L = logging.getLogger(__name__)
 HOST = "localhost"
 CALLBACK_PATH = "/callback"
+_REDACTED_QUERY_PARAMS = ("code", "state", "error_description")
+_REDACT_QUERY_RE = re.compile(
+    rf"((?:[?&])(?:{'|'.join(_REDACTED_QUERY_PARAMS)})=)[^&\s]*",
+    re.IGNORECASE,
+)
+
+
+def _redact_request_log(message: str) -> str:
+    """Replace sensitive OAuth query values in an HTTP access-log line."""
+    return _REDACT_QUERY_RE.sub(r"\1[redacted]", message)
 
 
 @dataclass
@@ -87,7 +98,7 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         """Redirect the request logs to this module's logger instead of stderr."""
-        L.debug("%s - %s", self.address_string(), format % args)
+        L.debug("%s - %s", self.address_string(), _redact_request_log(format % args))
 
 
 class AuthServer:
