@@ -403,6 +403,24 @@ def test_daf_authenticate(auth_method):
         test_module._daf_authenticate(environment=None)
 
 
+@patch("obi_auth.client.widget_authenticate")
+def test_widget_authenticate(auth_method):
+    auth_method.return_value = KeycloakTokenInfo(access_token="widget-token")  # noqa: S106
+    assert test_module._widget_authenticate(environment=None) == KeycloakTokenInfo(
+        access_token="widget-token"  # noqa: S106
+    )
+
+    auth_method.side_effect = exception.AuthFlowError()
+    with pytest.raises(exception.ClientError, match="Authentication process failed."):
+        test_module._widget_authenticate(environment=None)
+
+
+def test_get_auth_method_includes_widget():
+    from obi_auth.typedef import AuthMode
+
+    assert test_module._get_auth_method(AuthMode.widget) is test_module._widget_authenticate
+
+
 def test_get_token_info():
     payload = {"foo": "bar", "bar": "foo"}
 

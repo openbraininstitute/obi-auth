@@ -34,6 +34,10 @@ cli = [
 ]
 notebook = [
     "rich",
+    # Widget deps gate on Python >= 3.12 (ipyauth-pkce's floor). On 3.11 the
+    # extra installs rich only; using the widget raises a clear error.
+    "ipyauth-pkce>=1.0; python_version >= '3.12'",
+    "jupyter-ui-poll>=1.0; python_version >= '3.12'",
 ]
 
 [project.urls]
@@ -156,6 +160,15 @@ commands = [
     ["python", "-m", "pytest", { replace = "posargs", extend = true }],
     ["python", "-m", "coverage", "xml"],
     ["python", "-m", "coverage", "html"],
+]
+
+# py311 omits the 3.12-only widget module from coverage (see coverage-py311.cfg).
+[tool.tox.env.py311]
+commands = [
+    ["python", "-m", "pytest", "--cov-config=coverage-py311.cfg",
+        { replace = "posargs", extend = true }],
+    ["python", "-m", "coverage", "xml", "--rcfile=coverage-py311.cfg"],
+    ["python", "-m", "coverage", "html", "--rcfile=coverage-py311.cfg"],
 ]
 
 [tool.tox.env.lint]
