@@ -47,7 +47,7 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         )
 
     try:
-        from jupyter_ui_poll import run_ui_poll_loop
+        from jupyter_ui_poll import run_ui_poll_loop  # ty: ignore[unresolved-import]
     except ImportError as exc:
         raise AuthFlowError(_MISSING_POLL_MSG) from exc
 
