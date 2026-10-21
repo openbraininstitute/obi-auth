@@ -132,6 +132,10 @@ source = [
 [tool.coverage.run]
 branch = true
 parallel = false
+# Files to omit from coverage, driven by an env var so a single config serves
+# every tox env. Empty by default; the py311 env sets OBI_AUTH_COV_OMIT to the
+# widget module, which needs ipyauth-pkce (Python >= 3.12) and cannot run there.
+omit = ["${OBI_AUTH_COV_OMIT-}"]
 
 [tool.coverage.report]
 show_missing = true
@@ -162,14 +166,11 @@ commands = [
     ["python", "-m", "coverage", "html"],
 ]
 
-# py311 omits the 3.12-only widget module from coverage (see coverage-py311.cfg).
+# py311 omits the 3.12-only widget module from coverage via OBI_AUTH_COV_OMIT
+# (consumed by [tool.coverage.run] omit in this file); the module needs
+# ipyauth-pkce (Python >= 3.12) and so cannot run on 3.11.
 [tool.tox.env.py311]
-commands = [
-    ["python", "-m", "pytest", "--cov-config=coverage-py311.cfg",
-        { replace = "posargs", extend = true }],
-    ["python", "-m", "coverage", "xml", "--rcfile=coverage-py311.cfg"],
-    ["python", "-m", "coverage", "html", "--rcfile=coverage-py311.cfg"],
-]
+set_env.OBI_AUTH_COV_OMIT = "*/obi_auth/widget.py"
 
 [tool.tox.env.lint]
 deps = [
