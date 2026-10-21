@@ -51,7 +51,6 @@ class Settings(BaseSettings):
     # When set, the per-user redirect is derived as
     # {WIDGET_PUBLIC_HOST}{JUPYTERHUB_SERVICE_PREFIX}callback/.
     WIDGET_PUBLIC_HOST: str | None = None
-    WIDGET_CLIENT_ID: str = "obi-entitysdk-auth"
     WIDGET_TIMEOUT_SECONDS: int = 300
     # Per-user server prefix injected by JupyterHub into the single-user server
     # environment (e.g. "/user/<username>/<server>/"). JupyterHub sets this as

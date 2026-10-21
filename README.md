@@ -76,11 +76,11 @@ access_token = get_token(
 > `OBI_AUTH_WIDGET_REDIRECT_URI`; otherwise it falls back to
 > `http://localhost:8888/callback/` for local use.
 >
-> The Keycloak client used by the widget (`OBI_AUTH_WIDGET_CLIENT_ID`, default
-> `obi-entitysdk-auth`) must be a public client with the authorization-code +
-> PKCE flow enabled, and must allow the callback redirect URI (on JupyterHub a
-> wildcard such as `https://<host>/user/*` is required because the per-user
-> path is dynamic).
+> The Keycloak client used by the widget (`OBI_AUTH_KEYCLOAK_CLIENT_ID`,
+> default `obi-entitysdk-auth`) must be a public client with the
+> authorization-code + PKCE flow enabled, and must allow the callback redirect
+> URI (on JupyterHub a wildcard such as `https://<host>/user/*` is required
+> because the per-user path is dynamic).
 
 
 ## CLI
