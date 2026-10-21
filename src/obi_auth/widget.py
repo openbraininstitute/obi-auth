@@ -11,7 +11,7 @@ extra::
     pip install obi-auth[notebook]
 """
 
-from obi_auth.config import settings
+from obi_auth.config import _WIDGET_SCOPE, settings
 from obi_auth.exception import ClientError
 from obi_auth.typedef import DeploymentEnvironment
 
@@ -49,7 +49,7 @@ def get_widget(
         client_id: Keycloak client id. Defaults to
             ``settings.WIDGET_CLIENT_ID``.
         scope: OAuth2 scopes. Must contain ``openid`` and ``profile``. Defaults
-            to ``settings.WIDGET_SCOPE``.
+            to ``"openid profile"``.
 
     Returns:
         An ``ipyauth_pkce.Auth`` widget instance.
@@ -70,7 +70,7 @@ def get_widget(
         realm=settings.KEYCLOAK_REALM,
         client_id=client_id or settings.WIDGET_CLIENT_ID,
         redirect_uri=settings.resolve_widget_redirect_uri(redirect_uri),
-        scope=scope or settings.WIDGET_SCOPE,
+        scope=scope or _WIDGET_SCOPE,
         response_type="code",
     )
     return Auth(params=params)
