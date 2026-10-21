@@ -1,15 +1,14 @@
 """This module provides a config for the obi_auth service."""
 
-import os
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from obi_auth.exception import ConfigError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
-from obi_auth.util import get_config_dir
+from obi_auth.util import get_config_dir, join_url_path
 
 _DEFAULT_WIDGET_REDIRECT_URI = "http://localhost:8888/callback/"
 # OAuth2 scopes for the notebook sign-in widget. Not deployment-specific, so it
@@ -54,6 +53,14 @@ class Settings(BaseSettings):
     WIDGET_PUBLIC_HOST: str | None = None
     WIDGET_CLIENT_ID: str = "obi-entitysdk-auth"
     WIDGET_TIMEOUT_SECONDS: int = 300
+    # Per-user server prefix injected by JupyterHub into the single-user server
+    # environment (e.g. "/user/<username>/<server>/"). JupyterHub sets this as
+    # JUPYTERHUB_SERVICE_PREFIX (without the OBI_AUTH_ prefix), so read it under
+    # that name directly rather than through the env_prefix.
+    JUPYTERHUB_SERVICE_PREFIX: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("JUPYTERHUB_SERVICE_PREFIX"),
+    )
 
     def resolve_widget_redirect_uri(self, redirect_uri: str | None = None) -> str:
         """Resolve the OAuth2 redirect uri for the notebook sign-in widget.
@@ -74,12 +81,10 @@ class Settings(BaseSettings):
             return self.WIDGET_REDIRECT_URI
 
         public_host = self.WIDGET_PUBLIC_HOST
-        service_prefix = os.environ.get("JUPYTERHUB_SERVICE_PREFIX")
+        service_prefix = self.JUPYTERHUB_SERVICE_PREFIX
         if public_host and service_prefix:
             # service_prefix is like "/user/<username>/<server>/" (trailing slash).
-            base = public_host.rstrip("/")
-            prefix = "/" + service_prefix.strip("/") + "/"
-            return f"{base}{prefix}callback/"
+            return join_url_path(public_host, service_prefix, "callback")
 
         return _DEFAULT_WIDGET_REDIRECT_URI
 
