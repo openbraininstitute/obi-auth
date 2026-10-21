@@ -14,6 +14,7 @@ from obi_auth.flows.auth_manager import (
 )
 from obi_auth.flows.daf import daf_authenticate
 from obi_auth.flows.pkce import pkce_authenticate
+from obi_auth.flows.widget import widget_authenticate
 from obi_auth.request import user_info
 from obi_auth.server import AuthServer
 from obi_auth.storage import Storage
@@ -44,13 +45,15 @@ def get_token(
 
     Args:
         environment: Target deployment environment.
-        auth_mode: How to authenticate with Keycloak (``pkce`` or ``daf``), or
+        auth_mode: How to authenticate with Keycloak (``pkce`` or ``daf``),
+            ``widget`` for interactive notebook sign-in (requires the
+            ``notebook`` extra and a running Jupyter kernel), or
             ``persistent_token`` to mint from an existing auth-manager id
             (backwards-compatible public API for callers such as obi-one).
         token_provider: Who issues the returned access token when ``auth_mode`` is
-            ``pkce`` or ``daf``. ``keycloak`` returns the Keycloak token;
-            ``auth_manager`` exchanges it and mints an auth-manager access token.
-            Ignored when ``auth_mode`` is ``persistent_token``.
+            ``pkce``, ``daf``, or ``widget``. ``keycloak`` returns the Keycloak
+            token; ``auth_manager`` exchanges it and mints an auth-manager access
+            token. Ignored when ``auth_mode`` is ``persistent_token``.
         force_refresh: Clear the cached token and authenticate again.
         persistent_token_id: Required when ``auth_mode`` is ``persistent_token``.
     """
@@ -201,6 +204,7 @@ def _get_auth_method(auth_mode: AuthMode) -> Callable[..., KeycloakTokenInfo]:
     methods: dict[AuthMode, Callable[..., KeycloakTokenInfo]] = {
         AuthMode.pkce: _pkce_authenticate,
         AuthMode.daf: _daf_authenticate,
+        AuthMode.widget: _widget_authenticate,
     }
     return methods[auth_mode]
 
@@ -220,6 +224,13 @@ def _pkce_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenIn
 def _daf_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenInfo:
     try:
         return daf_authenticate(environment=environment)
+    except AuthFlowError as e:
+        raise ClientError("Authentication process failed.") from e
+
+
+def _widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenInfo:
+    try:
+        return widget_authenticate(environment=environment)
     except AuthFlowError as e:
         raise ClientError("Authentication process failed.") from e
 

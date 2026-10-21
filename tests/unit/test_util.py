@@ -1,6 +1,8 @@
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from obi_auth import util as test_module
 
 
@@ -8,6 +10,30 @@ def test_machine_salt():
     res1 = test_module.get_machine_salt()
     res2 = test_module.get_machine_salt()
     assert res1 == res2
+
+
+@pytest.mark.parametrize(
+    ("base", "parts", "expected"),
+    [
+        (
+            "https://jupyterhub.example.org",
+            ("/user/alice/server1/", "callback"),
+            "https://jupyterhub.example.org/user/alice/server1/callback/",
+        ),
+        # Trailing slash on base and surrounding slashes are normalized.
+        (
+            "https://jupyterhub.example.org/",
+            ("/user/alice/", "/callback/"),
+            "https://jupyterhub.example.org/user/alice/callback/",
+        ),
+        # The scheme's "//" is preserved (not collapsed to a single slash).
+        ("https://host", (), "https://host/"),
+        # Empty / slash-only segments are dropped.
+        ("https://host/", ("", "/", "callback"), "https://host/callback/"),
+    ],
+)
+def test_join_url_path(base, parts, expected):
+    assert test_module.join_url_path(base, *parts) == expected
 
 
 @patch("sys.modules")

@@ -34,6 +34,10 @@ cli = [
 ]
 notebook = [
     "rich",
+    # Widget deps gate on Python >= 3.12 (ipyauth-pkce's floor). On 3.11 the
+    # extra installs rich only; using the widget raises a clear error.
+    "ipyauth-pkce>=1.0; python_version >= '3.12'",
+    "jupyter-ui-poll>=1.0; python_version >= '3.12'",
 ]
 
 [project.urls]
@@ -128,6 +132,10 @@ source = [
 [tool.coverage.run]
 branch = true
 parallel = false
+# Files to omit from coverage, driven by an env var so a single config serves
+# every tox env. Empty by default; the py311 env sets OBI_AUTH_COV_OMIT to the
+# widget module, which needs ipyauth-pkce (Python >= 3.12) and cannot run there.
+omit = ["${OBI_AUTH_COV_OMIT-}"]
 
 [tool.coverage.report]
 show_missing = true
@@ -157,6 +165,12 @@ commands = [
     ["python", "-m", "coverage", "xml"],
     ["python", "-m", "coverage", "html"],
 ]
+
+# py311 omits the 3.12-only widget module from coverage via OBI_AUTH_COV_OMIT
+# (consumed by [tool.coverage.run] omit in this file); the module needs
+# ipyauth-pkce (Python >= 3.12) and so cannot run on 3.11.
+[tool.tox.env.py311]
+set_env.OBI_AUTH_COV_OMIT = "*/obi_auth/widget.py"
 
 [tool.tox.env.lint]
 deps = [
