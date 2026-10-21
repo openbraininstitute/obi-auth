@@ -12,6 +12,9 @@ from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
 from obi_auth.util import get_config_dir
 
 _DEFAULT_WIDGET_REDIRECT_URI = "http://localhost:8888/callback/"
+# OAuth2 scopes for the notebook sign-in widget. Not deployment-specific, so it
+# is a constant rather than a configurable setting.
+_WIDGET_SCOPE = "openid profile"
 
 
 class Settings(BaseSettings):
@@ -50,7 +53,6 @@ class Settings(BaseSettings):
     # {WIDGET_PUBLIC_HOST}{JUPYTERHUB_SERVICE_PREFIX}callback/.
     WIDGET_PUBLIC_HOST: str | None = None
     WIDGET_CLIENT_ID: str = "obi-entitysdk-auth"
-    WIDGET_SCOPE: str = "openid profile"
     WIDGET_TIMEOUT_SECONDS: int = 300
 
     def resolve_widget_redirect_uri(self, redirect_uri: str | None = None) -> str:
