@@ -3,17 +3,15 @@
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import AliasChoices, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from obi_auth.exception import ConfigError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
 from obi_auth.util import get_config_dir, join_url_path
 
-_DEFAULT_WIDGET_REDIRECT_URI = "http://localhost:8888/callback/"
-# OAuth2 scopes for the notebook sign-in widget. Not deployment-specific, so it
-# is a constant rather than a configurable setting.
-_WIDGET_SCOPE = "openid profile"
+_DEFAULT_NOTEBOOK_REDIRECT_URI = "http://localhost:8888/callback/"
+_NOTEBOOK_SCOPE = "openid profile"
 
 
 class Settings(BaseSettings):
@@ -44,48 +42,40 @@ class Settings(BaseSettings):
 
     LOCAL_SERVER_TIMEOUT: int = 60
 
-    # Notebook widget (auth_mode="widget") settings. Redirect URI resolution is
-    # documented on resolve_widget_redirect_uri below.
-    WIDGET_REDIRECT_URI: str | None = None
-    # JupyterHub public host (e.g. https://jupyterhub.staging.openbrainplatform.com).
-    # When set, the per-user redirect is derived as
-    # {WIDGET_PUBLIC_HOST}{JUPYTERHUB_SERVICE_PREFIX}callback/.
-    WIDGET_PUBLIC_HOST: str | None = None
-    WIDGET_TIMEOUT_SECONDS: int = 300
-    # Per-user server prefix injected by JupyterHub into the single-user server
-    # environment (e.g. "/user/<username>/<server>/"). JupyterHub sets this as
-    # JUPYTERHUB_SERVICE_PREFIX (without the OBI_AUTH_ prefix), so read it under
-    # that name directly rather than through the env_prefix.
+    # Notebook sign-in (auth_mode="notebook") settings.
+    NOTEBOOK_REDIRECT_URI: str | None = None
+    NOTEBOOK_PUBLIC_HOST: str | None = None
+    NOTEBOOK_TIMEOUT_SECONDS: int = 300
+    # Set by JupyterHub without the OBI_AUTH_ prefix, so alias it directly.
     JUPYTERHUB_SERVICE_PREFIX: str | None = Field(
         default=None,
-        validation_alias=AliasChoices("JUPYTERHUB_SERVICE_PREFIX"),
+        validation_alias="JUPYTERHUB_SERVICE_PREFIX",
     )
 
-    def resolve_widget_redirect_uri(self, redirect_uri: str | None = None) -> str:
+    def resolve_notebook_redirect_uri(self, redirect_uri: str | None = None) -> str:
         """Resolve the OAuth2 redirect uri for the notebook sign-in widget.
 
         Resolution order:
 
         1. ``redirect_uri`` argument if provided.
-        2. ``WIDGET_REDIRECT_URI`` if explicitly configured.
+        2. ``NOTEBOOK_REDIRECT_URI`` if explicitly configured.
         3. Derived per-user URI from the running Jupyter server's service prefix
-           (``JUPYTERHUB_SERVICE_PREFIX``) combined with ``WIDGET_PUBLIC_HOST``.
+           (``JUPYTERHUB_SERVICE_PREFIX``) combined with ``NOTEBOOK_PUBLIC_HOST``.
            This yields e.g.
            ``https://jupyterhub.example.org/user/<username>/<server>/callback/``.
         4. The local development default ``http://localhost:8888/callback/``.
         """
         if redirect_uri:
             return redirect_uri
-        if self.WIDGET_REDIRECT_URI:
-            return self.WIDGET_REDIRECT_URI
+        if self.NOTEBOOK_REDIRECT_URI:
+            return self.NOTEBOOK_REDIRECT_URI
 
-        public_host = self.WIDGET_PUBLIC_HOST
+        public_host = self.NOTEBOOK_PUBLIC_HOST
         service_prefix = self.JUPYTERHUB_SERVICE_PREFIX
         if public_host and service_prefix:
-            # service_prefix is like "/user/<username>/<server>/" (trailing slash).
             return join_url_path(public_host, service_prefix, "callback")
 
-        return _DEFAULT_WIDGET_REDIRECT_URI
+        return _DEFAULT_NOTEBOOK_REDIRECT_URI
 
     def _get_domain_url(self, override_env: DeploymentEnvironment) -> str:
         """Return domain url based on environment."""

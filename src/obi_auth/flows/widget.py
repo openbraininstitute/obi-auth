@@ -1,9 +1,9 @@
-"""Interactive notebook widget authentication flow (auth_mode="widget").
+"""Interactive notebook widget authentication flow (auth_mode="notebook").
 
 This flow renders an ``ipyauth-pkce`` sign-in widget in the notebook cell and
 blocks until the user signs in, then returns the resulting Keycloak access
 token. This lets notebooks keep the synchronous
-``token = get_token(..., auth_mode="widget")`` contract and only change the
+``token = get_token(..., auth_mode="notebook")`` contract and only change the
 ``auth_mode`` argument.
 
 Blocking a cell while still processing the widget's frontend comm messages
@@ -42,7 +42,7 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
     """
     if not is_running_in_notebook():
         raise AuthFlowError(
-            "auth_mode='widget' is only supported inside a Jupyter notebook. "
+            "auth_mode='notebook' is only supported inside a Jupyter notebook. "
             "Use auth_mode='pkce' or auth_mode='daf' from a terminal or script."
         )
 
@@ -54,11 +54,10 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
     widget = get_widget(environment=environment)
     _display(widget)
 
-    deadline = time.monotonic() + settings.WIDGET_TIMEOUT_SECONDS
+    deadline = time.monotonic() + settings.NOTEBOOK_TIMEOUT_SECONDS
 
     def _check():
-        # Returning None keeps the poll loop running (while still servicing
-        # widget comm events); returning a value stops it.
+        # None keeps the poll loop running (still servicing comm events); a value stops it.
         if widget.access_token:
             return widget.access_token
         if time.monotonic() >= deadline:

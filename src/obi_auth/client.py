@@ -46,12 +46,12 @@ def get_token(
     Args:
         environment: Target deployment environment.
         auth_mode: How to authenticate with Keycloak (``pkce`` or ``daf``),
-            ``widget`` for interactive notebook sign-in (requires the
+            ``notebook`` for interactive notebook sign-in (requires the
             ``notebook`` extra and a running Jupyter kernel), or
             ``persistent_token`` to mint from an existing auth-manager id
             (backwards-compatible public API for callers such as obi-one).
         token_provider: Who issues the returned access token when ``auth_mode`` is
-            ``pkce``, ``daf``, or ``widget``. ``keycloak`` returns the Keycloak
+            ``pkce``, ``daf``, or ``notebook``. ``keycloak`` returns the Keycloak
             token; ``auth_manager`` exchanges it and mints an auth-manager access
             token. Ignored when ``auth_mode`` is ``persistent_token``.
         force_refresh: Clear the cached token and authenticate again.
@@ -204,7 +204,7 @@ def _get_auth_method(auth_mode: AuthMode) -> Callable[..., KeycloakTokenInfo]:
     methods: dict[AuthMode, Callable[..., KeycloakTokenInfo]] = {
         AuthMode.pkce: _pkce_authenticate,
         AuthMode.daf: _daf_authenticate,
-        AuthMode.widget: _widget_authenticate,
+        AuthMode.notebook: _widget_authenticate,
     }
     return methods[auth_mode]
 

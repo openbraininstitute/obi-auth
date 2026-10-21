@@ -39,7 +39,7 @@ pip install obi-auth[notebook]
 
 This installs `rich` (better rendering in Jupyter notebooks) and the
 dependencies for the interactive sign-in widget (`ipyauth-pkce` and
-`jupyter-ui-poll`), enabling `auth_mode="widget"` (see Examples).
+`jupyter-ui-poll`), enabling `auth_mode="notebook"` (see Examples).
 
 ## Examples
 
@@ -52,7 +52,7 @@ access_token = get_token(environment="staging", token_provider="auth_manager")
 # Interactive sign-in from a Jupyter notebook cell (requires the `notebook`
 # extra and JupyterLab). Renders a "Sign In" widget, blocks until you sign in,
 # then returns the token string -- a drop-in change from auth_mode="daf":
-access_token = get_token(environment="staging", auth_mode="widget")
+access_token = get_token(environment="staging", auth_mode="notebook")
 
 # Mint from an existing auth-manager persistent id (e.g. obi-one launch scripts):
 access_token = get_token(
@@ -63,17 +63,17 @@ access_token = get_token(
 ```
 
 > [!NOTE]
-> `auth_mode="widget"` only works inside JupyterLab (>= 4) with a running
+> `auth_mode="notebook"` only works inside JupyterLab (>= 4) with a running
 > kernel. The Jupyter server must be started with `IPYAUTH_TOKEN_ENDPOINT` set
 > to the OBI token endpoint for your environment (ipyauth-pkce performs the
 > token exchange server-side against that endpoint).
 >
 > The OAuth redirect URI is resolved automatically: when
-> `OBI_AUTH_WIDGET_PUBLIC_HOST` is set (e.g. your JupyterHub host), obi-auth
+> `OBI_AUTH_NOTEBOOK_PUBLIC_HOST` is set (e.g. your JupyterHub host), obi-auth
 > derives the per-user callback from the running server prefix
 > (`JUPYTERHUB_SERVICE_PREFIX`), e.g.
 > `https://<host>/user/<username>/<server>/callback/`. You can override it with
-> `OBI_AUTH_WIDGET_REDIRECT_URI`; otherwise it falls back to
+> `OBI_AUTH_NOTEBOOK_REDIRECT_URI`; otherwise it falls back to
 > `http://localhost:8888/callback/` for local use.
 >
 > The Keycloak client used by the widget (`OBI_AUTH_KEYCLOAK_CLIENT_ID`,

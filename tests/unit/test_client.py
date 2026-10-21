@@ -418,7 +418,7 @@ def test_widget_authenticate(auth_method):
 def test_get_auth_method_includes_widget():
     from obi_auth.typedef import AuthMode
 
-    assert test_module._get_auth_method(AuthMode.widget) is test_module._widget_authenticate
+    assert test_module._get_auth_method(AuthMode.notebook) is test_module._widget_authenticate
 
 
 def test_get_token_info():

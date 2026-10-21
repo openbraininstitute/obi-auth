@@ -11,7 +11,7 @@ extra::
     pip install obi-auth[notebook]
 """
 
-from obi_auth.config import _WIDGET_SCOPE, settings
+from obi_auth.config import _NOTEBOOK_SCOPE, settings
 from obi_auth.exception import ClientError
 from obi_auth.typedef import DeploymentEnvironment
 
@@ -40,9 +40,9 @@ def get_widget(
             environment-specific (e.g. a JupyterHub callback
             ``https://.../user/<username>/<server>/callback/`` or a local
             ``http://localhost:8888/callback/``) and must be a valid url. When
-            omitted, it is resolved via ``settings.resolve_widget_redirect_uri``:
-            from ``OBI_AUTH_WIDGET_REDIRECT_URI`` if set, else derived from the
-            running Jupyter server prefix and ``OBI_AUTH_WIDGET_PUBLIC_HOST``,
+            omitted, it is resolved via ``settings.resolve_notebook_redirect_uri``:
+            from ``OBI_AUTH_NOTEBOOK_REDIRECT_URI`` if set, else derived from the
+            running Jupyter server prefix and ``OBI_AUTH_NOTEBOOK_PUBLIC_HOST``,
             else the local ``http://localhost:8888/callback/`` default.
         environment: Target deployment environment (``staging`` or
             ``production``). Selects the OBI Keycloak domain.
@@ -69,8 +69,8 @@ def get_widget(
         base_url=settings.get_keycloak_base_url(override_env=environment),
         realm=settings.KEYCLOAK_REALM,
         client_id=client_id or settings.KEYCLOAK_CLIENT_ID,
-        redirect_uri=settings.resolve_widget_redirect_uri(redirect_uri),
-        scope=scope or _WIDGET_SCOPE,
+        redirect_uri=settings.resolve_notebook_redirect_uri(redirect_uri),
+        scope=scope or _NOTEBOOK_SCOPE,
         response_type="code",
     )
     return Auth(params=params)

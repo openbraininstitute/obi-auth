@@ -10,8 +10,7 @@ STAGING_REALM_URL = (
 )
 PROD_REALM_URL = "https://cell-a.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect"
 
-# The real widget can only be built when the optional ipyauth-pkce dependency is
-# installed, which requires Python >= 3.12 (see the notebook extra markers).
+# ipyauth-pkce (and thus the real widget) is only installable on Python >= 3.12.
 requires_ipyauth = pytest.mark.skipif(
     importlib.util.find_spec("ipyauth_pkce") is None,
     reason="requires the optional 'ipyauth-pkce' dependency (Python >= 3.12)",

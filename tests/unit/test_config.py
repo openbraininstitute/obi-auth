@@ -137,8 +137,8 @@ def test_get_auth_manager_token_exchange_endpoint(settings):
 def _settings_without_jupyter_env(monkeypatch):
     # Ensure a clean environment for redirect-uri resolution tests.
     for var in (
-        "OBI_AUTH_WIDGET_REDIRECT_URI",
-        "OBI_AUTH_WIDGET_PUBLIC_HOST",
+        "OBI_AUTH_NOTEBOOK_REDIRECT_URI",
+        "OBI_AUTH_NOTEBOOK_PUBLIC_HOST",
         "JUPYTERHUB_SERVICE_PREFIX",
     ):
         monkeypatch.delenv(var, raising=False)
@@ -147,41 +147,41 @@ def _settings_without_jupyter_env(monkeypatch):
     return Settings()
 
 
-def test_resolve_widget_redirect_uri_explicit_argument(monkeypatch):
+def test_resolve_notebook_redirect_uri_explicit_argument(monkeypatch):
     s = _settings_without_jupyter_env(monkeypatch)
-    assert s.resolve_widget_redirect_uri("https://example.org/cb/") == "https://example.org/cb/"
+    assert s.resolve_notebook_redirect_uri("https://example.org/cb/") == "https://example.org/cb/"
 
 
-def test_resolve_widget_redirect_uri_from_setting(monkeypatch):
-    monkeypatch.setenv("OBI_AUTH_WIDGET_REDIRECT_URI", "https://configured.example.org/callback/")
-    monkeypatch.delenv("OBI_AUTH_WIDGET_PUBLIC_HOST", raising=False)
+def test_resolve_notebook_redirect_uri_from_setting(monkeypatch):
+    monkeypatch.setenv("OBI_AUTH_NOTEBOOK_REDIRECT_URI", "https://configured.example.org/callback/")
+    monkeypatch.delenv("OBI_AUTH_NOTEBOOK_PUBLIC_HOST", raising=False)
     monkeypatch.setenv("JUPYTERHUB_SERVICE_PREFIX", "/user/alice/server1/")
     from obi_auth.config import Settings
 
     s = Settings()
     # Explicit setting wins over derivation.
-    assert s.resolve_widget_redirect_uri() == "https://configured.example.org/callback/"
+    assert s.resolve_notebook_redirect_uri() == "https://configured.example.org/callback/"
 
 
-def test_resolve_widget_redirect_uri_derived_from_prefix(monkeypatch):
-    monkeypatch.delenv("OBI_AUTH_WIDGET_REDIRECT_URI", raising=False)
-    monkeypatch.setenv("OBI_AUTH_WIDGET_PUBLIC_HOST", "https://jupyterhub.example.org/")
+def test_resolve_notebook_redirect_uri_derived_from_prefix(monkeypatch):
+    monkeypatch.delenv("OBI_AUTH_NOTEBOOK_REDIRECT_URI", raising=False)
+    monkeypatch.setenv("OBI_AUTH_NOTEBOOK_PUBLIC_HOST", "https://jupyterhub.example.org/")
     monkeypatch.setenv("JUPYTERHUB_SERVICE_PREFIX", "/user/alice/19948fcb4b66cf8/")
     from obi_auth.config import Settings
 
     s = Settings()
     assert (
-        s.resolve_widget_redirect_uri()
+        s.resolve_notebook_redirect_uri()
         == "https://jupyterhub.example.org/user/alice/19948fcb4b66cf8/callback/"
     )
 
 
-def test_resolve_widget_redirect_uri_default_fallback(monkeypatch):
+def test_resolve_notebook_redirect_uri_default_fallback(monkeypatch):
     # Public host set but no Jupyter prefix -> fall back to localhost default.
-    monkeypatch.delenv("OBI_AUTH_WIDGET_REDIRECT_URI", raising=False)
-    monkeypatch.setenv("OBI_AUTH_WIDGET_PUBLIC_HOST", "https://jupyterhub.example.org")
+    monkeypatch.delenv("OBI_AUTH_NOTEBOOK_REDIRECT_URI", raising=False)
+    monkeypatch.setenv("OBI_AUTH_NOTEBOOK_PUBLIC_HOST", "https://jupyterhub.example.org")
     monkeypatch.delenv("JUPYTERHUB_SERVICE_PREFIX", raising=False)
     from obi_auth.config import Settings
 
     s = Settings()
-    assert s.resolve_widget_redirect_uri() == "http://localhost:8888/callback/"
+    assert s.resolve_notebook_redirect_uri() == "http://localhost:8888/callback/"
