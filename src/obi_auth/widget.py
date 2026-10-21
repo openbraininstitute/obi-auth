@@ -47,7 +47,7 @@ def get_widget(
         environment: Target deployment environment (``staging`` or
             ``production``). Selects the OBI Keycloak domain.
         client_id: Keycloak client id. Defaults to
-            ``settings.WIDGET_CLIENT_ID``.
+            ``settings.KEYCLOAK_CLIENT_ID``.
         scope: OAuth2 scopes. Must contain ``openid`` and ``profile``. Defaults
             to ``"openid profile"``.
 
@@ -68,7 +68,7 @@ def get_widget(
     params = ParamsKeycloak(
         base_url=settings.get_keycloak_base_url(override_env=environment),
         realm=settings.KEYCLOAK_REALM,
-        client_id=client_id or settings.WIDGET_CLIENT_ID,
+        client_id=client_id or settings.KEYCLOAK_CLIENT_ID,
         redirect_uri=settings.resolve_widget_redirect_uri(redirect_uri),
         scope=scope or _WIDGET_SCOPE,
         response_type="code",
