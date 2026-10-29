@@ -5,7 +5,7 @@ import functools
 import json
 import logging
 import threading
-from collections.abc import Iterator
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -114,7 +114,7 @@ class AuthServer:
         self.auth_state.event.clear()
 
     @contextlib.contextmanager
-    def run(self) -> Iterator[Self]:
+    def run(self) -> Generator[Self]:
         """Start server in a background thread on an OS-assigned port.
 
         The server binds once to port ``0`` so the kernel picks a free port on the
