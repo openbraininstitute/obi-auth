@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dynamic = ["version"]
 
@@ -142,6 +143,7 @@ env_list = [
     "py311",
     "py312",
     "py313",
+    "py314",
 ]
 
 [tool.tox.env_run_base]
