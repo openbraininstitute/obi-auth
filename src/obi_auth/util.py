@@ -39,6 +39,21 @@ def get_config_dir() -> Path:
     return Path.home() / ".config" / "obi-auth"
 
 
+def join_url_path(base: str, *parts: str) -> str:
+    """Join a base url with path segments, returning a trailing-slash url.
+
+    The scheme and host in ``base`` are preserved (its ``://`` is not collapsed),
+    while any leading/trailing slashes around each segment are normalized so the
+    result has exactly one slash between parts and a single trailing slash::
+
+        join_url_path("https://host/", "/user/alice/", "callback")
+        # -> "https://host/user/alice/callback/"
+    """
+    base = base.rstrip("/")
+    segments = [part.strip("/") for part in parts if part.strip("/")]
+    return "/".join([base, *segments]) + "/"
+
+
 def is_running_in_notebook() -> bool:
     """Check if code is running in a Jupyter notebook environment."""
     try:

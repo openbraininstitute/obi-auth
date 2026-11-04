@@ -39,8 +39,9 @@ class AuthMode(StrEnum):
 
     pkce = auto()
     daf = auto()
-    # Public API: mint via auth-manager from an existing persistent token id
-    # (no Keycloak login). Backwards-compatible with pre-token-exchange callers.
+    # Notebook-only: interactive ipyauth-pkce sign-in widget.
+    notebook = auto()
+    # Mint via auth-manager from an existing persistent token id (no Keycloak login).
     persistent_token = auto()
 
 
