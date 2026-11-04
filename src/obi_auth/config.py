@@ -11,7 +11,6 @@ from obi_auth.typedef import DeploymentEnvironment, KeycloakRealm
 from obi_auth.util import get_config_dir, join_url_path
 
 _DEFAULT_NOTEBOOK_REDIRECT_URI = "http://localhost:8888/callback/"
-_NOTEBOOK_SCOPE = "openid profile"
 
 
 class Settings(BaseSettings):

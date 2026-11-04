@@ -11,7 +11,7 @@ extra::
     pip install obi-auth[notebook]
 """
 
-from obi_auth.config import _NOTEBOOK_SCOPE, settings
+from obi_auth.config import settings
 from obi_auth.exception import ClientError
 from obi_auth.typedef import DeploymentEnvironment
 
@@ -70,7 +70,7 @@ def get_widget(
         realm=settings.KEYCLOAK_REALM,
         client_id=client_id or settings.KEYCLOAK_CLIENT_ID,
         redirect_uri=settings.resolve_notebook_redirect_uri(redirect_uri),
-        scope=scope or _NOTEBOOK_SCOPE,
+        scope=scope or "openid profile",
         response_type="code",
     )
     return Auth(params=params)

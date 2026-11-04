@@ -11,7 +11,6 @@ Blocking a cell while still processing the widget's frontend comm messages
 is handled by ``jupyter-ui-poll``.
 """
 
-import logging
 import time
 
 from obi_auth.config import settings
@@ -19,8 +18,6 @@ from obi_auth.exception import AuthFlowError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakTokenInfo
 from obi_auth.util import is_running_in_notebook
 from obi_auth.widget import get_widget
-
-L = logging.getLogger(__name__)
 
 _MISSING_POLL_MSG = (
     "The notebook widget auth mode requires the optional 'jupyter-ui-poll' "

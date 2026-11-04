@@ -82,7 +82,6 @@ access_token = get_token(
 > URI (on JupyterHub a wildcard such as `https://<host>/user/*` is required
 > because the per-user path is dynamic).
 
-
 ## CLI
 
 After installing with the `cli` extra, the `obi-auth` command is available. Run `obi-auth --help` for the full list of commands and options.
