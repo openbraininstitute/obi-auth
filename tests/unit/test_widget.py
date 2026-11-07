@@ -36,6 +36,45 @@ def test_get_widget_defaults():
     assert url_params["scope"] == "openid profile"
 
 
+def test_obi_logo_bytes_is_valid_svg():
+    data = widget._obi_logo_bytes()
+    assert isinstance(data, bytes)
+    assert data.lstrip().startswith(b"<svg")
+    assert b"</svg>" in data
+
+
+@requires_ipyauth
+def test_get_widget_uses_obi_logo():
+    w = widget.get_widget(redirect_uri="http://localhost:8888/callback/")
+
+    def descendants(node):
+        for child in getattr(node, "children", ()):
+            yield child
+            yield from descendants(child)
+
+    image = next(x for x in descendants(w) if type(x).__name__ == "Image")
+    assert image.format == "svg+xml"
+    assert bytes(image.value) == widget._obi_logo_bytes()
+
+
+@requires_ipyauth
+def test_get_widget_falls_back_without_logo_support(monkeypatch):
+    # Simulate an older ipyauth-pkce whose Auth(...) rejects the logo kwarg.
+    import ipyauth_pkce
+
+    real_auth = ipyauth_pkce.Auth
+
+    def auth_without_logo(*args, logo=None, **kwargs):
+        if logo is not None:
+            raise TypeError("unexpected keyword argument 'logo'")
+        return real_auth(*args, **kwargs)
+
+    monkeypatch.setattr(ipyauth_pkce, "Auth", auth_without_logo)
+
+    w = widget.get_widget(redirect_uri="http://localhost:8888/callback/")
+    assert type(w).__name__ == "Auth"
+
+
 @requires_ipyauth
 def test_get_widget_production_and_overrides():
     w = widget.get_widget(

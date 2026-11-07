@@ -11,6 +11,8 @@ extra::
     pip install obi-auth[notebook]
 """
 
+from importlib import resources
+
 from obi_auth.config import settings
 from obi_auth.exception import ClientError
 from obi_auth.typedef import DeploymentEnvironment
@@ -19,6 +21,11 @@ _MISSING_DEP_MSG = (
     "The notebook widget requires the optional 'ipyauth-pkce' dependency. "
     "Install it with: pip install obi-auth[notebook]"
 )
+
+
+def _obi_logo_bytes() -> bytes:
+    """Return the OBI logo SVG shipped with the package, as raw bytes."""
+    return resources.files("obi_auth.assets").joinpath("obi-logo.svg").read_bytes()
 
 
 def get_widget(
@@ -31,9 +38,10 @@ def get_widget(
     """Build an interactive Keycloak sign-in widget for a Jupyter notebook.
 
     Returns an ``ipyauth_pkce.Auth`` widget pre-configured with the OBI Keycloak
-    base url, realm, and client id. Display the returned object in a notebook
-    cell to render the "Sign In" button; after signing in, read the token via
-    ``widget.access_token`` or the ready-to-use ``widget.headers``.
+    base url, realm, and client id, and branded with the OBI logo. Display the
+    returned object in a notebook cell to render the "Sign In" button; after
+    signing in, read the token via ``widget.access_token`` or the ready-to-use
+    ``widget.headers``.
 
     Args:
         redirect_uri: OAuth2 redirect uri registered for the client. This is
@@ -73,4 +81,9 @@ def get_widget(
         scope=scope or "openid profile",
         response_type="code",
     )
-    return Auth(params=params)
+    try:
+        return Auth(params=params, logo=_obi_logo_bytes())
+    except TypeError:
+        # Older ipyauth-pkce without the ``logo=`` parameter: fall back to the
+        # default provider logo rather than failing to build the widget.
+        return Auth(params=params)

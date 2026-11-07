@@ -52,6 +52,12 @@ obi-auth = "obi_auth.cli:main"
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"obi_auth.assets" = ["*.svg"]
+
 [tool.pytest.ini_options]
 addopts = [
     "-vv",
