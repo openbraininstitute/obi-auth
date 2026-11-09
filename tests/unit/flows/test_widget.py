@@ -29,13 +29,21 @@ def test_widget_authenticate_missing_poll_dependency(mock_in_nb):
             test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
 
+@patch("obi_auth.flows.widget._clear")
 @patch("obi_auth.flows.widget._display")
 @patch("obi_auth.flows.widget.get_widget")
 @patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True)
-def test_widget_authenticate_success(mock_in_nb, mock_get_widget, mock_display):
+def test_widget_authenticate_success(mock_in_nb, mock_get_widget, mock_display, mock_clear):
+    import jwt
+
+    access_token = jwt.encode(
+        {"name": "Jane Doe", "preferred_username": "jdoe"}, "x" * 32, algorithm="HS256"
+    )
     fake_widget = MagicMock()
-    fake_widget.access_token = "the-token"  # noqa: S105
+    fake_widget.access_token = access_token
     mock_get_widget.return_value = fake_widget
+    handle = object()
+    mock_display.return_value = handle
 
     # Simulate run_ui_poll_loop by invoking the supplied callback once.
     def fake_poll_loop(f, sleep):
@@ -48,19 +56,29 @@ def test_widget_authenticate_success(mock_in_nb, mock_get_widget, mock_display):
         result = test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
     assert isinstance(result, KeycloakTokenInfo)
-    assert result.access_token == "the-token"  # noqa: S105
+    assert result.access_token == access_token
     mock_get_widget.assert_called_once_with(environment=DeploymentEnvironment.staging)
     mock_display.assert_called_once_with(fake_widget)
+    # On success the widget is replaced with a confirmation built from token claims.
+    mock_clear.assert_called_once()
+    clear_args, _ = mock_clear.call_args
+    assert clear_args[0] is handle
+    assert clear_args[1] == "\u2713 Signed in as Jane Doe (jdoe)"
 
 
+@patch("obi_auth.flows.widget._clear")
 @patch("obi_auth.flows.widget.time")
 @patch("obi_auth.flows.widget._display")
 @patch("obi_auth.flows.widget.get_widget")
 @patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True)
-def test_widget_authenticate_timeout(mock_in_nb, mock_get_widget, mock_display, mock_time):
+def test_widget_authenticate_timeout(
+    mock_in_nb, mock_get_widget, mock_display, mock_time, mock_clear
+):
     fake_widget = MagicMock()
     fake_widget.access_token = ""  # never signs in
     mock_get_widget.return_value = fake_widget
+    handle = object()
+    mock_display.return_value = handle
 
     # deadline = monotonic() + timeout (=0). First in-loop check is before the
     # deadline (returns None -> still waiting), second is past it (-> timeout).
@@ -80,13 +98,102 @@ def test_widget_authenticate_timeout(mock_in_nb, mock_get_widget, mock_display, 
         with pytest.raises(AuthFlowError, match="timed out"):
             test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
+    # The widget must be cleared even when the flow times out.
+    mock_clear.assert_called_once_with(handle)
+
+
+@patch("obi_auth.flows.widget._clear")
+@patch("obi_auth.flows.widget._display")
+@patch("obi_auth.flows.widget.get_widget")
+@patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True)
+def test_widget_authenticate_clears_when_poll_raises(
+    mock_in_nb, mock_get_widget, mock_display, mock_clear
+):
+    # If the poll loop itself raises (e.g. KeyboardInterrupt), the widget must
+    # still be cleared and the original exception must propagate.
+    fake_widget = MagicMock()
+    mock_get_widget.return_value = fake_widget
+    handle = object()
+    mock_display.return_value = handle
+
+    def fake_poll_loop(f, sleep):
+        raise KeyboardInterrupt
+
+    with patch.dict(
+        "sys.modules",
+        {"jupyter_ui_poll": MagicMock(run_ui_poll_loop=fake_poll_loop)},
+    ):
+        with pytest.raises(KeyboardInterrupt):
+            test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
+
+    mock_clear.assert_called_once_with(handle)
+
+
+def _jwt(claims):
+    import jwt
+
+    return jwt.encode(claims, "x" * 32, algorithm="HS256")
+
+
+def test_signed_in_suffix_with_name_and_username():
+    suffix = test_module._signed_in_suffix(_jwt({"name": "Jane Doe", "preferred_username": "jdoe"}))
+    assert suffix == " as Jane Doe (jdoe)"
+
+
+def test_signed_in_suffix_with_only_one_claim():
+    assert test_module._signed_in_suffix(_jwt({"name": "Jane Doe"})) == " as Jane Doe"
+    assert test_module._signed_in_suffix(_jwt({"preferred_username": "jdoe"})) == " as jdoe"
+
+
+def test_signed_in_suffix_with_no_claims():
+    assert test_module._signed_in_suffix(_jwt({"sub": "123"})) == ""
+
+
+def test_signed_in_suffix_with_undecodable_token():
+    # Never raises on a non-JWT value; returns an empty suffix.
+    assert test_module._signed_in_suffix("not-a-jwt") == ""
+
 
 def test_display_invokes_ipython_display():
     fake_widget = object()
-    fake_display = MagicMock()
+    handle = object()
+    fake_display = MagicMock(return_value=handle)
     with patch.dict(
         "sys.modules",
         {"IPython.display": MagicMock(display=fake_display)},
     ):
-        test_module._display(fake_widget)
-    fake_display.assert_called_once_with(fake_widget)
+        result = test_module._display(fake_widget)
+    fake_display.assert_called_once_with(fake_widget, display_id=True)
+    assert result is handle
+
+
+def test_clear_updates_handle_with_empty_output():
+    handle = MagicMock()
+    fake_html = MagicMock(return_value="empty")
+    with patch.dict(
+        "sys.modules",
+        {"IPython.display": MagicMock(HTML=fake_html)},
+    ):
+        test_module._clear(handle)
+    fake_html.assert_called_once_with("")
+    handle.update.assert_called_once_with("empty")
+
+
+def test_clear_updates_handle_with_message():
+    handle = MagicMock()
+    fake_html = MagicMock(return_value="rendered")
+    with patch.dict(
+        "sys.modules",
+        {"IPython.display": MagicMock(HTML=fake_html)},
+    ):
+        test_module._clear(handle, "\u2713 Signed in as Jane \u2014 token ready")
+    # The message is embedded in the HTML passed to HTML(...).
+    (html_arg,), _ = fake_html.call_args
+    assert "Signed in as Jane" in html_arg
+    handle.update.assert_called_once_with("rendered")
+
+
+def test_clear_is_noop_when_handle_is_none():
+    # Must not raise when there is no display handle (e.g. display_id unsupported).
+    test_module._clear(None)
+    test_module._clear(None, "message")

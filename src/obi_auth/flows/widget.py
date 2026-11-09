@@ -49,7 +49,7 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         raise AuthFlowError(_MISSING_POLL_MSG) from exc
 
     widget = get_widget(environment=environment)
-    _display(widget)
+    handle = _display(widget)
 
     deadline = time.monotonic() + settings.NOTEBOOK_TIMEOUT_SECONDS
 
@@ -61,19 +61,63 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
             return _TIMEOUT
         return None
 
-    token = run_ui_poll_loop(_check, sleep=_POLL_SLEEP_SECONDS)
+    try:
+        token = run_ui_poll_loop(_check, sleep=_POLL_SLEEP_SECONDS)
+    except BaseException:
+        _clear(handle)
+        raise
+
     if token is _TIMEOUT:
+        _clear(handle)
         raise AuthFlowError("Widget sign-in timed out before a token was received.")
 
+    # Replace the interactive widget with a short confirmation so the sign-in
+    # does not simply vanish, while keeping a consistent, non-interactive end
+    # state whether or not a sign-in was actually needed.
+    _clear(handle, f"\u2713 Signed in{_signed_in_suffix(token)}")
+
     return KeycloakTokenInfo(access_token=token)
+
+
+def _signed_in_suffix(token: str) -> str:
+    """Build " as <name> (<preferred_username>)" from the token claims.
+
+    Degrades to whichever claim is present (or an empty suffix if neither is).
+    """
+    try:
+        import jwt  # ty: ignore[unresolved-import]
+
+        claims = jwt.decode(token, options={"verify_signature": False})
+    except Exception:  # noqa: BLE001 - never fail the flow over a cosmetic label
+        return ""
+    name = claims.get("name")
+    username = claims.get("preferred_username")
+    if name and username:
+        return f" as {name} ({username})"
+    if name or username:
+        return f" as {name or username}"
+    return ""
 
 
 # Sentinel distinguishing "timed out" from "still waiting" in the poll loop.
 _TIMEOUT = object()
 
 
-def _display(widget) -> None:
-    """Display the widget in the current notebook cell."""
+def _display(widget):
+    """Display the widget in the current notebook cell, returning its handle."""
     from IPython.display import display  # ty: ignore[unresolved-import]
 
-    display(widget)
+    return display(widget, display_id=True)
+
+
+def _clear(handle, message: str = "") -> None:
+    """Replace the displayed widget with a short message (or empty output)."""
+    if handle is None:
+        return
+    from IPython.display import HTML  # ty: ignore[unresolved-import]
+
+    if message:
+        html = f'<div style="color:#002766;font-size:13px;padding:3px">{message}</div>'
+    else:
+        html = ""
+    handle.update(HTML(html))
