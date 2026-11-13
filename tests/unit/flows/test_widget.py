@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from obi_auth.exception import AuthFlowError
+from obi_auth.exception import AuthCancelledError, AuthFlowError
 from obi_auth.flows import widget as test_module
 from obi_auth.typedef import DeploymentEnvironment, KeycloakTokenInfo
 
@@ -76,6 +76,7 @@ def test_widget_authenticate_timeout(
 ):
     fake_widget = MagicMock()
     fake_widget.access_token = ""  # never signs in
+    fake_widget.auth_error = ""  # no terminal error -> must reach the deadline
     mock_get_widget.return_value = fake_widget
     handle = object()
     mock_display.return_value = handle
@@ -95,10 +96,43 @@ def test_widget_authenticate_timeout(
         "sys.modules",
         {"jupyter_ui_poll": MagicMock(run_ui_poll_loop=fake_poll_loop)},
     ):
-        with pytest.raises(AuthFlowError, match="timed out"):
+        with pytest.raises(AuthCancelledError, match="Re-run the cell"):
             test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
     # The widget must be cleared even when the flow times out.
+    mock_clear.assert_called_once_with(handle)
+
+
+@pytest.mark.parametrize("auth_error", ["cancelled", "error"])
+@patch("obi_auth.flows.widget._clear")
+@patch("obi_auth.flows.widget._display")
+@patch("obi_auth.flows.widget.get_widget")
+@patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True)
+def test_widget_authenticate_aborts_on_widget_error(
+    mock_in_nb, mock_get_widget, mock_display, mock_clear, auth_error
+):
+    # The widget signals a terminal outcome (popup closed / sign-in error) via
+    # its auth_error trait; the flow must stop immediately, not hang to timeout.
+    fake_widget = MagicMock()
+    fake_widget.access_token = ""
+    fake_widget.auth_error = auth_error
+    mock_get_widget.return_value = fake_widget
+    handle = object()
+    mock_display.return_value = handle
+
+    def fake_poll_loop(f, sleep):
+        while True:
+            x = f()
+            if x is not None:
+                return x
+
+    with patch.dict(
+        "sys.modules",
+        {"jupyter_ui_poll": MagicMock(run_ui_poll_loop=fake_poll_loop)},
+    ):
+        with pytest.raises(AuthCancelledError, match="Re-run the cell"):
+            test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
+
     mock_clear.assert_called_once_with(handle)
 
 
@@ -147,6 +181,12 @@ def test_signed_in_suffix_with_only_one_claim():
 
 def test_signed_in_suffix_with_no_claims():
     assert test_module._signed_in_suffix(_jwt({"sub": "123"})) == ""
+
+
+def test_auth_cancelled_renders_as_single_line():
+    exc = AuthCancelledError("Sign-in was not completed. Re-run the cell to try again.")
+    # IPython calls _render_traceback_ to show a concise message (no stack).
+    assert exc._render_traceback_() == ["Sign-in was not completed. Re-run the cell to try again."]
 
 
 def test_signed_in_suffix_with_undecodable_token():

@@ -14,7 +14,7 @@ is handled by ``jupyter-ui-poll``.
 import time
 
 from obi_auth.config import settings
-from obi_auth.exception import AuthFlowError
+from obi_auth.exception import AuthCancelledError, AuthFlowError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakTokenInfo
 from obi_auth.util import is_running_in_notebook
 from obi_auth.widget import get_widget
@@ -57,6 +57,10 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         # None keeps the poll loop running (still servicing comm events); a value stops it.
         if widget.access_token:
             return widget.access_token
+        # The widget signals a terminal outcome (popup closed, or a sign-in
+        # error) so we stop immediately instead of hanging until the deadline.
+        if getattr(widget, "auth_error", ""):
+            return _ABORTED
         if time.monotonic() >= deadline:
             return _TIMEOUT
         return None
@@ -67,9 +71,9 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         _clear(handle)
         raise
 
-    if token is _TIMEOUT:
+    if token is _ABORTED or token is _TIMEOUT:
         _clear(handle)
-        raise AuthFlowError("Widget sign-in timed out before a token was received.")
+        raise AuthCancelledError("Sign-in was not completed. Re-run the cell to try again.")
 
     # Replace the interactive widget with a short confirmation so the sign-in
     # does not simply vanish, while keeping a consistent, non-interactive end
@@ -101,6 +105,9 @@ def _signed_in_suffix(token: str) -> str:
 
 # Sentinel distinguishing "timed out" from "still waiting" in the poll loop.
 _TIMEOUT = object()
+
+# Sentinel for a terminal widget outcome (sign-in cancelled or failed).
+_ABORTED = object()
 
 
 def _display(widget):
