@@ -67,7 +67,7 @@ def get_widget(
             installed.
     """
     try:
-        from ipyauth_pkce import Auth, ParamsKeycloak  # ty: ignore[unresolved-import]
+        from ipyauth_pkce import Auth, ParamsKeycloak  # ty: ignore[import-not-found]
     except ImportError as exc:
         raise ClientError(_MISSING_DEP_MSG) from exc
 

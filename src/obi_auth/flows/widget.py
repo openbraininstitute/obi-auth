@@ -44,7 +44,7 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         )
 
     try:
-        from jupyter_ui_poll import run_ui_poll_loop  # ty: ignore[unresolved-import]
+        from jupyter_ui_poll import run_ui_poll_loop  # ty: ignore[import-not-found]
     except ImportError as exc:
         raise AuthFlowError(_MISSING_POLL_MSG) from exc
 
@@ -89,7 +89,7 @@ def _signed_in_suffix(token: str) -> str:
     Degrades to whichever claim is present (or an empty suffix if neither is).
     """
     try:
-        import jwt  # ty: ignore[unresolved-import]
+        import jwt
 
         claims = jwt.decode(token, options={"verify_signature": False})
     except Exception:  # noqa: BLE001 - never fail the flow over a cosmetic label
@@ -112,7 +112,7 @@ _ABORTED = object()
 
 def _display(widget):
     """Display the widget in the current notebook cell, returning its handle."""
-    from IPython.display import display  # ty: ignore[unresolved-import]
+    from IPython.display import display  # ty: ignore[import-not-found]
 
     return display(widget, display_id=True)
 
@@ -121,7 +121,7 @@ def _clear(handle, message: str = "") -> None:
     """Replace the displayed widget with a short message (or empty output)."""
     if handle is None:
         return
-    from IPython.display import HTML  # ty: ignore[unresolved-import]
+    from IPython.display import HTML  # ty: ignore[import-not-found]
 
     if message:
         html = f'<div style="color:#002766;font-size:13px;padding:3px">{message}</div>'
