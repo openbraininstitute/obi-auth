@@ -16,7 +16,7 @@ import time
 from obi_auth.config import settings
 from obi_auth.exception import AuthCancelledError, AuthFlowError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakTokenInfo
-from obi_auth.util import is_running_in_notebook
+from obi_auth.util import decode_token, is_running_in_notebook
 from obi_auth.widget import get_widget
 
 _MISSING_POLL_MSG = (
@@ -89,9 +89,7 @@ def _signed_in_suffix(token: str) -> str:
     Degrades to whichever claim is present (or an empty suffix if neither is).
     """
     try:
-        import jwt
-
-        claims = jwt.decode(token, options={"verify_signature": False})
+        claims = decode_token(token)
     except Exception:  # noqa: BLE001 - never fail the flow over a cosmetic label
         return ""
     name = claims.get("name")

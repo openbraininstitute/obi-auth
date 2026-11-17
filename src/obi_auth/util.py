@@ -7,6 +7,7 @@ import platform
 import sys
 from pathlib import Path
 
+import jwt
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
@@ -32,6 +33,11 @@ def derive_fernet_key() -> bytes:
     )
     key = hkdf.derive(get_machine_salt())
     return base64.urlsafe_b64encode(key)  # Fernet requires base64 encoding
+
+
+def decode_token(token: str) -> dict:
+    """Decode the claims of a JWT without verifying its signature."""
+    return jwt.decode(token, options={"verify_signature": False})
 
 
 def get_config_dir() -> Path:

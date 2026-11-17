@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import jwt
 import pytest
 
 from obi_auth.exception import AuthCancelledError, AuthFlowError
@@ -34,8 +35,6 @@ def test_widget_authenticate_missing_poll_dependency(mock_in_nb):
 @patch("obi_auth.flows.widget.get_widget")
 @patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True)
 def test_widget_authenticate_success(mock_in_nb, mock_get_widget, mock_display, mock_clear):
-    import jwt
-
     access_token = jwt.encode(
         {"name": "Jane Doe", "preferred_username": "jdoe"}, "x" * 32, algorithm="HS256"
     )
@@ -164,8 +163,6 @@ def test_widget_authenticate_clears_when_poll_raises(
 
 
 def _jwt(claims):
-    import jwt
-
     return jwt.encode(claims, "x" * 32, algorithm="HS256")
 
 
