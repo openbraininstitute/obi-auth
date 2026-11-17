@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
+import jwt
 import pytest
 
 from obi_auth import util as test_module
@@ -148,3 +149,9 @@ def test_get_config_dir(mock_home):
     mock_home.return_value = Path("/foo")
     res = test_module.get_config_dir()
     assert res == Path("/foo/.config/obi-auth")
+
+
+def test_decode_token():
+    token = jwt.encode({"sub": "123", "name": "Jane"}, key="x" * 32, algorithm="HS256")
+    # the signature is not verified, so the key does not matter
+    assert test_module.decode_token(token) == {"sub": "123", "name": "Jane"}

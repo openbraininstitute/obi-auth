@@ -3,8 +3,6 @@
 import logging
 from collections.abc import Callable
 
-import jwt
-
 from obi_auth.cache import AuthManagerTokenCache, TokenCache
 from obi_auth.config import settings
 from obi_auth.exception import AuthFlowError, ClientError, ConfigError, LocalServerError
@@ -25,6 +23,7 @@ from obi_auth.typedef import (
     KeycloakTokenInfo,
     TokenProvider,
 )
+from obi_auth.util import decode_token
 
 L = logging.getLogger(__name__)
 
@@ -237,7 +236,7 @@ def _widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakToken
 
 def get_token_info(token: str) -> dict:
     """Decode token information."""
-    return jwt.decode(token, options={"verify_signature": False})
+    return decode_token(token)
 
 
 def get_user_info(

@@ -14,9 +14,9 @@ is handled by ``jupyter-ui-poll``.
 import time
 
 from obi_auth.config import settings
-from obi_auth.exception import AuthFlowError
+from obi_auth.exception import AuthCancelledError, AuthFlowError
 from obi_auth.typedef import DeploymentEnvironment, KeycloakTokenInfo
-from obi_auth.util import is_running_in_notebook
+from obi_auth.util import decode_token, is_running_in_notebook
 from obi_auth.widget import get_widget
 
 _MISSING_POLL_MSG = (
@@ -44,12 +44,12 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         )
 
     try:
-        from jupyter_ui_poll import run_ui_poll_loop  # ty: ignore[unresolved-import]
+        from jupyter_ui_poll import run_ui_poll_loop  # ty: ignore[import-not-found]
     except ImportError as exc:
         raise AuthFlowError(_MISSING_POLL_MSG) from exc
 
     widget = get_widget(environment=environment)
-    _display(widget)
+    handle = _display(widget)
 
     deadline = time.monotonic() + settings.NOTEBOOK_TIMEOUT_SECONDS
 
@@ -57,23 +57,72 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         # None keeps the poll loop running (still servicing comm events); a value stops it.
         if widget.access_token:
             return widget.access_token
+        # The widget signals a terminal outcome (popup closed, or a sign-in
+        # error) so we stop immediately instead of hanging until the deadline.
+        if getattr(widget, "auth_error", ""):
+            return _ABORTED
         if time.monotonic() >= deadline:
             return _TIMEOUT
         return None
 
-    token = run_ui_poll_loop(_check, sleep=_POLL_SLEEP_SECONDS)
-    if token is _TIMEOUT:
-        raise AuthFlowError("Widget sign-in timed out before a token was received.")
+    try:
+        token = run_ui_poll_loop(_check, sleep=_POLL_SLEEP_SECONDS)
+    except BaseException:
+        _clear(handle)
+        raise
+
+    if token is _ABORTED or token is _TIMEOUT:
+        _clear(handle)
+        raise AuthCancelledError("Sign-in was not completed. Re-run the cell to try again.")
+
+    # Replace the interactive widget with a short confirmation so the sign-in
+    # does not simply vanish, while keeping a consistent, non-interactive end
+    # state whether or not a sign-in was actually needed.
+    _clear(handle, f"\u2713 Signed in{_signed_in_suffix(token)}")
 
     return KeycloakTokenInfo(access_token=token)
+
+
+def _signed_in_suffix(token: str) -> str:
+    """Build " as <name> (<preferred_username>)" from the token claims.
+
+    Degrades to whichever claim is present (or an empty suffix if neither is).
+    """
+    try:
+        claims = decode_token(token)
+    except Exception:  # noqa: BLE001 - never fail the flow over a cosmetic label
+        return ""
+    name = claims.get("name")
+    username = claims.get("preferred_username")
+    if name and username:
+        return f" as {name} ({username})"
+    if name or username:
+        return f" as {name or username}"
+    return ""
 
 
 # Sentinel distinguishing "timed out" from "still waiting" in the poll loop.
 _TIMEOUT = object()
 
+# Sentinel for a terminal widget outcome (sign-in cancelled or failed).
+_ABORTED = object()
 
-def _display(widget) -> None:
-    """Display the widget in the current notebook cell."""
-    from IPython.display import display  # ty: ignore[unresolved-import]
 
-    display(widget)
+def _display(widget):
+    """Display the widget in the current notebook cell, returning its handle."""
+    from IPython.display import display  # ty: ignore[import-not-found]
+
+    return display(widget, display_id=True)
+
+
+def _clear(handle, message: str = "") -> None:
+    """Replace the displayed widget with a short message (or empty output)."""
+    if handle is None:
+        return
+    from IPython.display import HTML  # ty: ignore[import-not-found]
+
+    if message:
+        html = f'<div style="color:#002766;font-size:13px;padding:3px">{message}</div>'
+    else:
+        html = ""
+    handle.update(HTML(html))

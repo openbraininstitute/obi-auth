@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     # Notebook sign-in (auth_mode="notebook") settings.
     NOTEBOOK_REDIRECT_URI: str | None = None
     NOTEBOOK_PUBLIC_HOST: str | None = None
-    NOTEBOOK_TIMEOUT_SECONDS: int = 300
+    NOTEBOOK_TIMEOUT_SECONDS: int = 120
     # Set by JupyterHub without the OBI_AUTH_ prefix, so alias it directly.
     JUPYTERHUB_SERVICE_PREFIX: str | None = Field(
         default=None,

@@ -2,7 +2,6 @@
 
 import time
 
-import jwt
 from cryptography.fernet import Fernet, InvalidToken
 
 from obi_auth.config import settings
@@ -13,7 +12,7 @@ from obi_auth.typedef import (
     CachedTokenInfo,
     KeycloakTokenInfo,
 )
-from obi_auth.util import derive_fernet_key
+from obi_auth.util import decode_token, derive_fernet_key
 
 
 class BaseTokenCache:
@@ -124,6 +123,6 @@ def _now() -> int:
 
 def _get_token_times(token: str) -> tuple[int, int]:
     """Get the creation time and time to live of a token."""
-    info = jwt.decode(token.encode(), options={"verify_signature": False})
+    info = decode_token(token)
     effective_ttl = info["exp"] - info["iat"] - settings.EPSILON_TOKEN_TTL_SECONDS
     return info["iat"], effective_ttl

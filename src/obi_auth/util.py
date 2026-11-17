@@ -7,6 +7,7 @@ import platform
 import sys
 from pathlib import Path
 
+import jwt
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
@@ -34,6 +35,11 @@ def derive_fernet_key() -> bytes:
     return base64.urlsafe_b64encode(key)  # Fernet requires base64 encoding
 
 
+def decode_token(token: str) -> dict:
+    """Decode the claims of a JWT without verifying its signature."""
+    return jwt.decode(token, options={"verify_signature": False})
+
+
 def get_config_dir() -> Path:
     """Get config file path."""
     return Path.home() / ".config" / "obi-auth"
@@ -59,7 +65,7 @@ def is_running_in_notebook() -> bool:
     try:
         # Check for IPython
         if "IPython" in sys.modules:
-            from IPython import get_ipython  # ty: ignore[unresolved-import]
+            from IPython import get_ipython  # ty: ignore[import-not-found]
 
             ipython = get_ipython()
             if ipython is not None:

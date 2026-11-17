@@ -37,7 +37,7 @@ notebook = [
     "rich",
     # Widget deps gate on Python >= 3.12 (ipyauth-pkce's floor). On 3.11 the
     # extra installs rich only; using the widget raises a clear error.
-    "ipyauth-pkce>=1.0; python_version >= '3.12'",
+    "ipyauth-pkce>=1.2; python_version >= '3.12'",
     "jupyter-ui-poll>=1.0; python_version >= '3.12'",
 ]
 
@@ -51,6 +51,12 @@ obi-auth = "obi_auth.cli:main"
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"obi_auth.assets" = ["*.svg"]
 
 [tool.pytest.ini_options]
 addopts = [
