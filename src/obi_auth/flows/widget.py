@@ -25,6 +25,7 @@ _MISSING_POLL_MSG = (
 )
 
 _POLL_SLEEP_SECONDS = 0.1
+_POLL_MESSAGES_PER_ITERATION = 50
 
 
 def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenInfo:
@@ -66,7 +67,7 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
         return None
 
     try:
-        token = run_ui_poll_loop(_check, sleep=_POLL_SLEEP_SECONDS)
+        token = run_ui_poll_loop(_check, sleep=_POLL_SLEEP_SECONDS, n=_POLL_MESSAGES_PER_ITERATION)
     except BaseException:
         _clear(handle)
         raise

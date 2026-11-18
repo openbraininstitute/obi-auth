@@ -45,7 +45,7 @@ def test_widget_authenticate_success(mock_in_nb, mock_get_widget, mock_display, 
     mock_display.return_value = handle
 
     # Simulate run_ui_poll_loop by invoking the supplied callback once.
-    def fake_poll_loop(f, sleep):
+    def fake_poll_loop(f, sleep, n):
         return f()
 
     with patch.dict(
@@ -84,7 +84,7 @@ def test_widget_authenticate_timeout(
     # deadline (returns None -> still waiting), second is past it (-> timeout).
     mock_time.monotonic.side_effect = [0, -1, 10_000]
 
-    def fake_poll_loop(f, sleep):
+    def fake_poll_loop(f, sleep, n):
         # Drive the callback until it returns a non-None value, as the real loop does.
         while True:
             x = f()
@@ -119,7 +119,7 @@ def test_widget_authenticate_aborts_on_widget_error(
     handle = object()
     mock_display.return_value = handle
 
-    def fake_poll_loop(f, sleep):
+    def fake_poll_loop(f, sleep, n):
         while True:
             x = f()
             if x is not None:
@@ -149,7 +149,7 @@ def test_widget_authenticate_clears_when_poll_raises(
     handle = object()
     mock_display.return_value = handle
 
-    def fake_poll_loop(f, sleep):
+    def fake_poll_loop(f, sleep, n):
         raise KeyboardInterrupt
 
     with patch.dict(
@@ -234,3 +234,24 @@ def test_clear_is_noop_when_handle_is_none():
     # Must not raise when there is no display handle (e.g. display_id unsupported).
     test_module._clear(None)
     test_module._clear(None, "message")
+
+
+def test_widget_authenticate_handles_many_messages_per_poll_iteration():
+    seen = {}
+
+    def fake_poll_loop(f, sleep, n):
+        seen["n"] = n
+        return f()
+
+    widget = MagicMock()
+    widget.access_token = "the-token"  # noqa: S105
+    with (
+        patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True),
+        patch("obi_auth.flows.widget.get_widget", return_value=widget),
+        patch("obi_auth.flows.widget._display", return_value=object()),
+        patch("obi_auth.flows.widget._clear"),
+        patch.dict("sys.modules", {"jupyter_ui_poll": MagicMock(run_ui_poll_loop=fake_poll_loop)}),
+    ):
+        test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
+
+    assert seen["n"] > 1
