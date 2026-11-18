@@ -11,6 +11,7 @@ Blocking a cell while still processing the widget's frontend comm messages
 is handled by ``jupyter-ui-poll``.
 """
 
+import enum
 import time
 
 from obi_auth.config import settings
@@ -25,6 +26,7 @@ _MISSING_POLL_MSG = (
 )
 
 _POLL_SLEEP_SECONDS = 0.1
+_POLL_MESSAGES_PER_ITERATION = 50
 
 
 def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenInfo:
@@ -51,30 +53,38 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
     widget = get_widget(environment=environment)
     handle = _display(widget)
 
-    deadline = time.monotonic() + settings.NOTEBOOK_TIMEOUT_SECONDS
-
-    def _check():
-        # None keeps the poll loop running (still servicing comm events); a value stops it.
-        if widget.access_token:
-            return widget.access_token
-        # The widget signals a terminal outcome (popup closed, or a sign-in
-        # error) so we stop immediately instead of hanging until the deadline.
-        if getattr(widget, "auth_error", ""):
-            return _ABORTED
-        if time.monotonic() >= deadline:
-            return _TIMEOUT
-        return None
+    watcher = _SignInWatcher(widget)
 
     try:
-        token = run_ui_poll_loop(_check, sleep=_POLL_SLEEP_SECONDS)
+        outcome: _Outcome = run_ui_poll_loop(
+            watcher.check, sleep=_POLL_SLEEP_SECONDS, n=_POLL_MESSAGES_PER_ITERATION
+        )
     except BaseException:
         _clear(handle)
         raise
 
-    if token is _ABORTED or token is _TIMEOUT:
-        _clear(handle)
-        raise AuthCancelledError("Sign-in was not completed. Re-run the cell to try again.")
+    match outcome:
+        case _Outcome.NOT_STARTED:
+            _clear(handle)
+            raise AuthCancelledError(
+                "Sign-in was not started. Re-run the cell and click 'Sign In' to continue."
+            )
+        case _Outcome.ABORTED:
+            if widget.auth_error == "cancelled":
+                _clear(handle)
+                raise AuthCancelledError("Sign-in was cancelled. Re-run the cell to try again.")
+            widget.disable()
+            raise AuthCancelledError(
+                "Sign-in failed, see the message in the widget above. Re-run the cell to try again."
+            )
+        case _Outcome.TIMEOUT:
+            _clear(handle)
+            raise AuthCancelledError(
+                f"Sign-in was not completed within {settings.NOTEBOOK_TIMEOUT_SECONDS} s. "
+                "Re-run the cell to try again."
+            )
 
+    token = widget.access_token
     # Replace the interactive widget with a short confirmation so the sign-in
     # does not simply vanish, while keeping a consistent, non-interactive end
     # state whether or not a sign-in was actually needed.
@@ -101,11 +111,31 @@ def _signed_in_suffix(token: str) -> str:
     return ""
 
 
-# Sentinel distinguishing "timed out" from "still waiting" in the poll loop.
-_TIMEOUT = object()
+class _Outcome(enum.Enum):
+    SIGNED_IN = enum.auto()
+    NOT_STARTED = enum.auto()
+    ABORTED = enum.auto()
+    TIMEOUT = enum.auto()
 
-# Sentinel for a terminal widget outcome (sign-in cancelled or failed).
-_ABORTED = object()
+
+class _SignInWatcher:
+    def __init__(self, widget) -> None:
+        self._widget = widget
+        self._start_deadline = time.monotonic() + settings.NOTEBOOK_START_TIMEOUT_SECONDS
+        self._sign_in_deadline: float | None = None
+
+    def check(self) -> _Outcome | None:
+        widget = self._widget
+        if widget.access_token:
+            return _Outcome.SIGNED_IN
+        if widget.auth_error:
+            return _Outcome.ABORTED
+        now = time.monotonic()
+        if self._sign_in_deadline is None and widget.auth_state == "in_progress":
+            self._sign_in_deadline = now + settings.NOTEBOOK_TIMEOUT_SECONDS
+        if self._sign_in_deadline is None:
+            return _Outcome.NOT_STARTED if now >= self._start_deadline else None
+        return _Outcome.TIMEOUT if now >= self._sign_in_deadline else None
 
 
 def _display(widget):

@@ -76,6 +76,15 @@ access_token = get_token(
 > `OBI_AUTH_NOTEBOOK_REDIRECT_URI`; otherwise it falls back to
 > `http://localhost:8888/callback/` for local use.
 >
+> `get_token` blocks the cells below it until sign-in ends. Closing the sign-in
+> popup or a failed sign-in ends it at once (requires `ipyauth-pkce>=1.4.2`).
+> Two timeouts cover the cases the widget cannot report:
+>
+> | Variable | Default | Meaning |
+> | --- | --- | --- |
+> | `OBI_AUTH_NOTEBOOK_START_TIMEOUT_SECONDS` | `20` | Time to click "Sign In" when the browser blocked the automatic popup. |
+> | `OBI_AUTH_NOTEBOOK_TIMEOUT_SECONDS` | `120` | Time to finish signing in once the popup is open. |
+>
 > The Keycloak client used by the widget (`OBI_AUTH_KEYCLOAK_CLIENT_ID`,
 > default `obi-entitysdk-auth`) must be a public client with the
 > authorization-code + PKCE flow enabled, and must allow the callback redirect
