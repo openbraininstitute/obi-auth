@@ -70,10 +70,13 @@ def widget_authenticate(*, environment: DeploymentEnvironment) -> KeycloakTokenI
                 "Sign-in was not started. Re-run the cell and click 'Sign In' to continue."
             )
         case _Outcome.ABORTED:
-            _clear(handle)
             if widget.auth_error == "cancelled":
+                _clear(handle)
                 raise AuthCancelledError("Sign-in was cancelled. Re-run the cell to try again.")
-            raise AuthCancelledError("Sign-in failed. Re-run the cell to try again.")
+            widget.disable()
+            raise AuthCancelledError(
+                "Sign-in failed, see the message in the widget above. Re-run the cell to try again."
+            )
         case _Outcome.TIMEOUT:
             _clear(handle)
             raise AuthCancelledError(

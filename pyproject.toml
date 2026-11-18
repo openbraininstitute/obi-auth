@@ -37,7 +37,7 @@ notebook = [
     "rich",
     # Widget deps gate on Python >= 3.12 (ipyauth-pkce's floor). On 3.11 the
     # extra installs rich only; using the widget raises a clear error.
-    "ipyauth-pkce>=1.4.1; python_version >= '3.12'",
+    "ipyauth-pkce>=1.4.2; python_version >= '3.12'",
     "jupyter-ui-poll>=1.0; python_version >= '3.12'",
 ]
 

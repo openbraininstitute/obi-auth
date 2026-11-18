@@ -77,7 +77,7 @@ access_token = get_token(
 > `http://localhost:8888/callback/` for local use.
 >
 > `get_token` blocks the cells below it until sign-in ends. Closing the sign-in
-> popup or a failed sign-in ends it at once (requires `ipyauth-pkce>=1.4.1`).
+> popup or a failed sign-in ends it at once (requires `ipyauth-pkce>=1.4.2`).
 > Two timeouts cover the cases the widget cannot report:
 >
 > | Variable | Default | Meaning |

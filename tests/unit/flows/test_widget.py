@@ -174,7 +174,7 @@ def test_widget_authenticate_times_out_when_sign_in_never_finishes(monkeypatch):
 
 @pytest.mark.parametrize(
     ("auth_error", "message"),
-    [("cancelled", "Sign-in was cancelled"), ("error", "Sign-in failed")],
+    [("cancelled", "Sign-in was cancelled"), ("error", "Sign-in failed, see the message")],
 )
 @patch("obi_auth.flows.widget._clear")
 @patch("obi_auth.flows.widget._display")
@@ -205,7 +205,12 @@ def test_widget_authenticate_aborts_on_widget_error(
         with pytest.raises(AuthCancelledError, match=f"{message}.*Re-run the cell"):
             test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
-    mock_clear.assert_called_once_with(handle)
+    if auth_error == "cancelled":
+        mock_clear.assert_called_once_with(handle)
+        fake_widget.disable.assert_not_called()
+    else:
+        mock_clear.assert_not_called()
+        fake_widget.disable.assert_called_once_with()
 
 
 @patch("obi_auth.flows.widget._clear")
