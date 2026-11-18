@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import jwt
@@ -76,6 +77,7 @@ def test_widget_authenticate_timeout(
     fake_widget = MagicMock()
     fake_widget.access_token = ""  # never signs in
     fake_widget.auth_error = ""  # no terminal error -> must reach the deadline
+    fake_widget.auth_state = "in_progress"
     mock_get_widget.return_value = fake_widget
     handle = object()
     mock_display.return_value = handle
@@ -95,20 +97,91 @@ def test_widget_authenticate_timeout(
         "sys.modules",
         {"jupyter_ui_poll": MagicMock(run_ui_poll_loop=fake_poll_loop)},
     ):
-        with pytest.raises(AuthCancelledError, match="Re-run the cell"):
+        with pytest.raises(AuthCancelledError, match="was not completed within"):
             test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
     # The widget must be cleared even when the flow times out.
     mock_clear.assert_called_once_with(handle)
 
 
-@pytest.mark.parametrize("auth_error", ["cancelled", "error"])
+def _run_flow(widget, times, on_check=None):
+    """Run the flow with a fake poll loop; ``times`` are successive ``time.monotonic()`` values."""
+    clock = iter(times)
+
+    def fake_poll_loop(f, sleep, n):
+        i = 0
+        while True:
+            if on_check:
+                on_check(i, widget)
+            x = f()
+            if x is not None:
+                return x
+            i += 1
+
+    with (
+        patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True),
+        patch("obi_auth.flows.widget.get_widget", return_value=widget),
+        patch("obi_auth.flows.widget._display", return_value=object()),
+        patch("obi_auth.flows.widget._clear") as mock_clear,
+        patch("obi_auth.flows.widget.time.monotonic", side_effect=lambda: next(clock)),
+        patch.dict("sys.modules", {"jupyter_ui_poll": MagicMock(run_ui_poll_loop=fake_poll_loop)}),
+    ):
+        return test_module.widget_authenticate(
+            environment=DeploymentEnvironment.staging
+        ), mock_clear
+
+
+def _widget(**traits):
+    return SimpleNamespace(**{"access_token": "", "auth_error": "", **traits})
+
+
+def test_widget_authenticate_stops_when_sign_in_is_never_started(monkeypatch):
+    monkeypatch.setattr(test_module.settings, "NOTEBOOK_START_TIMEOUT_SECONDS", 20)
+    with pytest.raises(AuthCancelledError, match="was not started"):
+        _run_flow(_widget(auth_state="idle"), times=[0, 5, 19.9, 20])
+
+
+def test_widget_authenticate_waits_while_sign_in_is_in_progress(monkeypatch):
+    monkeypatch.setattr(test_module.settings, "NOTEBOOK_START_TIMEOUT_SECONDS", 20)
+    monkeypatch.setattr(test_module.settings, "NOTEBOOK_TIMEOUT_SECONDS", 120)
+
+    def frontend(i, widget):
+        if i == 1:
+            widget.auth_state = "in_progress"
+        if i == 3:
+            widget.access_token = "the-token"  # noqa: S105
+
+    result, _ = _run_flow(_widget(auth_state="idle"), times=[0, 5, 10, 50, 100], on_check=frontend)
+    assert result.access_token == "the-token"  # noqa: S105
+
+
+def test_widget_authenticate_stops_at_once_when_popup_is_closed():
+    def frontend(i, widget):
+        if i == 1:
+            widget.auth_state = "cancelled"
+            widget.auth_error = "cancelled"
+
+    with pytest.raises(AuthCancelledError, match="Sign-in was cancelled"):
+        _run_flow(_widget(auth_state="in_progress"), times=[0, 1, 2], on_check=frontend)
+
+
+def test_widget_authenticate_times_out_when_sign_in_never_finishes(monkeypatch):
+    monkeypatch.setattr(test_module.settings, "NOTEBOOK_START_TIMEOUT_SECONDS", 20)
+    monkeypatch.setattr(test_module.settings, "NOTEBOOK_TIMEOUT_SECONDS", 120)
+    with pytest.raises(AuthCancelledError, match="was not completed within 120 s"):
+        _run_flow(_widget(auth_state="in_progress"), times=[0, 1, 50, 120, 121])
+
+
+@pytest.mark.parametrize(
+    ("auth_error", "message"),
+    [("cancelled", "Sign-in was cancelled"), ("error", "Sign-in failed")],
+)
 @patch("obi_auth.flows.widget._clear")
 @patch("obi_auth.flows.widget._display")
 @patch("obi_auth.flows.widget.get_widget")
 @patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True)
 def test_widget_authenticate_aborts_on_widget_error(
-    mock_in_nb, mock_get_widget, mock_display, mock_clear, auth_error
+    mock_in_nb, mock_get_widget, mock_display, mock_clear, auth_error, message
 ):
     # The widget signals a terminal outcome (popup closed / sign-in error) via
     # its auth_error trait; the flow must stop immediately, not hang to timeout.
@@ -129,7 +202,7 @@ def test_widget_authenticate_aborts_on_widget_error(
         "sys.modules",
         {"jupyter_ui_poll": MagicMock(run_ui_poll_loop=fake_poll_loop)},
     ):
-        with pytest.raises(AuthCancelledError, match="Re-run the cell"):
+        with pytest.raises(AuthCancelledError, match=f"{message}.*Re-run the cell"):
             test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
     mock_clear.assert_called_once_with(handle)
@@ -243,8 +316,7 @@ def test_widget_authenticate_handles_many_messages_per_poll_iteration():
         seen["n"] = n
         return f()
 
-    widget = MagicMock()
-    widget.access_token = "the-token"  # noqa: S105
+    widget = _widget(auth_state="idle", access_token="the-token")  # noqa: S106
     with (
         patch("obi_auth.flows.widget.is_running_in_notebook", return_value=True),
         patch("obi_auth.flows.widget.get_widget", return_value=widget),
@@ -255,3 +327,17 @@ def test_widget_authenticate_handles_many_messages_per_poll_iteration():
         test_module.widget_authenticate(environment=DeploymentEnvironment.staging)
 
     assert seen["n"] > 1
+
+
+def test_sign_in_watcher_counts_the_sign_in_timeout_from_when_the_popup_opens(monkeypatch):
+    monkeypatch.setattr(test_module.settings, "NOTEBOOK_START_TIMEOUT_SECONDS", 20)
+    monkeypatch.setattr(test_module.settings, "NOTEBOOK_TIMEOUT_SECONDS", 120)
+    clock = iter([0, 5, 10, 129, 130])
+    widget = _widget(auth_state="idle")
+    with patch("obi_auth.flows.widget.time.monotonic", side_effect=lambda: next(clock)):
+        watcher = test_module._SignInWatcher(widget)
+        assert watcher.check() is None
+        widget.auth_state = "in_progress"
+        assert watcher.check() is None
+        assert watcher.check() is None
+        assert watcher.check() is test_module._Outcome.TIMEOUT
